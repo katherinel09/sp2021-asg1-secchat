@@ -330,8 +330,6 @@ static int server_state_init(struct server_state *state)
   // Determine portstring
   //int port_num = state->sockfd;
 
-
-
   /* bind socket to specified port on all interfaces */
   addr.sin_family = AF_INET;
   addr.sin_port = htons(state->sockfd);
@@ -344,9 +342,6 @@ static int server_state_init(struct server_state *state)
   if (r != 0) { /* handle error */ }
 
   return fd;
-
-
-
 
   return 0;
 }
