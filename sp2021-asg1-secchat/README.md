@@ -1,20 +1,50 @@
 
-The goal of this application is to build a secure chat application between a client and a server. 
+# The goal of this application is to build a secure chat application between a client and a server. 
 
-To compile: run 'make all' in the root directory. 
+# To compile: run 'make all' in the root directory. 
 
 #### Program description - The description should be sufficiently detailed for a third party to be able to write a new client or server program that is able to interface with your programs, without having to read your code.
 
-#### TODO: Describe your server and clients communicate
+SP2021-ASF1-SECCHAT is a standalone program that consists of a 'chat server' which maintains a chat states which create conversation, as well as a 'chat client' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include but not limit to users sending and receiving private and public messages. 
 
-#### TODO: Describe all possible types of interactions between server and clients, 
+#### Functional requirements of the client and server
+
+Client:
+
+- The client is able to register a new account through a username and password. The max length for usernames and passwords is 30 characters.
+- The client can only login to an account if he/she uses the associated password
+- The client can exit by logging out from the server. This also terminates the client program
+- When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
+- The client can send public messages to all users and private messages to a specified users
+- Messages are displayed to the client with a timestamp, author, and recipient (for private messages)
+- Duplicate usernames are not allowed on the server
+- The maximum length for messages is 500 characters on the server
+- Can provide a list of logged in users at a client's request
+- Messages are displayed to the intended client(s) immediately
+
+Server:
+
+- The server program supports all the functionality needed to provide the aforementioned client features
+- No more than 20 simultaneous connections are allowed
+- The server program takes care of all necessary storage for security
+
+#### Nonfunctional program requirements
+
+In addition to several functional requirements, our program also meets a set of nonfunctional requirements.  
+
+In particular: 
+1. Permanent state information is stored on a server-side database named chat.db, which can be retrieved by the client as needed. 
+2. The server and client's keys are both stored in the directories serverkeys and clientkeys within the root directory
+3. Programs may not access each other's keys without invoking a trusted third party to access the ttpkeys directory
+4. Restarting the server does not result in any loss of data
+#### How the server and clients communicate
+
+#### Possible types of interactions between server and clients, 
 
 
 #### TODO: the data layout of all possible types of packets sent
 
 #### TODO: a description of any cryptography you apply. 
-
-SP2021-ASF1-SECCHAT is a standalone program that consists of a 'game server' which maintains a game state, as well as 'game client' to display the game. The goal of the game is to collect the most gold nuggets out of all of the players. The game ends when all of the nuggets have been collected.
 
 ### How we acheived our security goals: 
 
@@ -22,28 +52,25 @@ Throughout the project, we identified several potential types of attacks are pro
 
 ##### List of potential attacks and approaches taken to prevent the attack:  
 
+Since a hacker does not have local access to our system, she can only access the program through the client or server. To prevent her from accessing sensitive information by compromising the program, we implemented several approaches defined below. 
 
-1. Determine at which addresses all clients and the server are running.
-2. Read, modify, inject, and/or block data sent over any network connection between a client and the server.
-3. Establish a connection with any client or the server, spoofing her network address to any possible value.
+1. Attacks may occur at the addresses at which clients and the server are running 
+
+To prevent a hacker from utilizing server and client addresses to gain secret information, we placed extra protection on where those addresses can be accessed. 
+
+2. Attackers may attempt to read, modify, inject, and/or block data sent over any network connection between a client and the server
+
+To prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented several approaches.
+
+3. Attacks may attempt to establish a connection with any client or the server, spoofing her network address to any possible value.
 
 
-• Implement a malicious client to attack either the server or other clients by sending specially crafted data.
-• Implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
-• Perform these actions any number of times, possibly simultaneously.
-However, Mallory has no local access to the systems running your programs. She can only access them through your client and server programs. As such, she cannot access memory, access the disk, or intercept keyboard unless she compromises your program first.
-7.2 Security properties
-Within the threat model specified in the previous section, your programs must be able to satisfy the following security properties:
-• Mallory cannot get information about private messages for which she is not either the sender or the intended recipient.
-• Mallory cannot send messages on behalf of another user.
-• Mallory cannot modify messages sent by other users.
-• Mallory cannot find out users’ passwords, private keys, or private messages (even if the server is compromised).
-• Mallory cannot use the client or server programs to achieve privilege es- calation on the systems they are running on.g
-• Mallory cannot leak or corrupt data in the client or server programs.
-• Mallory cannot crash the client or server programs.
-• The programs must never expose any information from the systems they run on, beyond what is required for the program to meet the requirements in the assignments.
-• The programs must be unable to modify any files except for chat.db and the contents of the clientkeys and clientkeys directories, or any operating system settings, even if Mallory attempts to force it to do so.
-It should be noted that we only require that you protect confidentiality and integrity. Under the given threat model, it is not possible to ensure availability entirely.
+4. Attackers may implement a malicious client to attack either the server or other clients by sending specially crafted data.
+
+5. Attackers may implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
+
+
+Furthermore, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we
 
 #### Possible threats we did not prevent:
 
@@ -84,26 +111,6 @@ password
 = TOKEN
 ```
 
-#### Functional requirements
-
-Client:
-
-- The client is able to register a new account through a username and password. The max length for usernames and passwords is 30 characters.
-- The client can only login to an account if he/she uses the associated password
-- The client can exit by logging out from the server. This also terminates the client program
-- When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
-- The client can send public messages to all users and private messages to a specified users
-- Messages are displayed to the client with a timestamp, author, and recipient (for private messages)
-- Duplicate usernames are not allowed on the server
-- The maximum length for messages is 500 characters on the server
-- Can provide a list of logged in users at a client's request
-- Messages are displayed to the intended client(s) immediately
-
-Server:
-
-- The server program supports all the functionality needed to provide the aforementioned client features
-- No more than 20 simultaneous connections are allowed
-- The server program takes care of all necessary storage for security
 
 #### Dataflow through modules
 
@@ -123,9 +130,17 @@ Purpose:
 
 This is a very large piece of code on aggregate, so there are many things to test. To do this, both unit and integration testing are necessary.
 
-- Validity of user agruments for client, spectator, and player
-- Boundary cases (i.e. player = max players) in different map.txt files
-- Behavior of movement (stops at walls, room becomes visible as player moves)
-- If program works with multiple players (same or different computers)
+- Validity of user agruments for client and server
+- Boundary cases, such as sending the max length of the chat, sending a message to a user that doesn't exist, maximizing the number of clients on the server, 
+- Private vs. public message visibility
+- If server works with multiple client (same or different computers)
 - Program handles player leaving correctly
-- Program exits correctly when there's an error or game over
+- Program exits correctly when the server is closed (whether compromised or not)
+
+Specific test attacks we tested: 
+- Attackers sending messages on behalf of another user.
+- Attackers modifying messages sent by other users
+- Attackers finding out users’ passwords, private keys, or private messages (even if the server is compromised).
+- Attackers using the client or server programs to achieve privilege escalation on the systems they are running on
+- Attackers attempting to leak or corrupt data in the client or server programs
+- Attackers crashing the client or server programs.
