@@ -33,9 +33,15 @@ First, the user must start the server. The program server is run from the applic
 $ ./server port_num &
 ```
 
-In the main funtion, a reference for the port is defined as well as a new server_state struct. The arguments are then parsed to insure that no malicious arguments may be inputted by an attacker and affect out system. 
+In the main funtion, a reference for the port is defined as well as a new server_state struct. The arguments are then parsed to ensure that no malicious arguments may be inputted by an attacker and affect out system. 
 
-The server then begins to start listning and waiting for connects. When the server is no longer needed, allocated memory is freed and the program exits a return code of 0. 
+Them, we initialize the state of the server using the reference to the above struct. We clear the previous memory and begin to initialize the correct sockets to the specified ports according to the system reqiurements. 
+
+Now, the server is able to register SIGCHLD signals and will interrupt accept them, while SIGPIPE signals are completely ignored. The server then is called to make the connections between sockets and ports that were earlier initialized, thus allowing the server to start listening for incoing client conenctions. 
+
+While the server is waiting, it will continuously check for new client connections through the children_check method. The server will infinitely check if a child has finished or not, and if they did finish, then how the child died. The server then parses the messages of all the existing children, by allocating read and write file descriptor references. The program will then inifintely handle incoming notifcations and send outgoing notifications to the client until terminated. 
+
+When the server is no longer needed, allocated memory is freed and the program exits a return code of 0. 
 
 ### Methods in client.c
 ```c=
@@ -58,9 +64,9 @@ $ ./client localhost port_num
 
 First, we disable buffering of the output to ensure that hackers are unable to mine for private data. Once this is done through the setvbuf function, we parse the number of inputted arguments for correctness, as well as ensuring that there are no possibilities of malicious inputs. 
 
-Once the inputs are parsed, we initialize the client state and connect the client to the server. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
+Once the inputs are parsed, we initialize the client state. To do this, we clear the previous memory in the space we wish to store the reference, and then we create a new UI reference.  Once the client is intialized, the client is connceted to the server. Here, we check that the state and the hostname are the anticipated values and a hacker is not attempting to input malicious parameters. Then, we look up the hostname, create the TCP socket, and connect to the server. If any of the previous steps fail, we return an exit code of -1. 
 
-In the client side, we check if the message exitcommand, logincommand, registercommand, usercommand, or privatemessage is sent. 
+Once the client has successfully connected, we initialized the associated APIs such that we are reference the messages and the states of the API. FInally, the client is able to send and receive messages from the server as long as both parties are working. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
 
 ### How the server and the client communicate
 Currently, the server is first set up, then clients are able to join the server.  
