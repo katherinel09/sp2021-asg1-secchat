@@ -14,17 +14,12 @@ client.o: client.c api.h ui.h util.h
 
 api.o: api.c api.h 
 
-command.o: command.c command.h
-
 server.o: server.c util.h
 
 util.o: util.c util.h
 
 worker.o: worker.c util.h worker.h
 
-client: client.o api.o ui.o util.o command.o
+client: client.o api.o ui.o util.o 
 
 server: server.o api.o util.o worker.o
-
-
-
