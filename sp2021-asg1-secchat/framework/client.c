@@ -154,7 +154,6 @@ static int handle_server_request(struct client_state *state) {
  *
  */
 static int handle_incoming(struct client_state *state) {
-	log("static int handle_incoming(struct client_state *state) {");
 	int fdmax, r;
 	fd_set readfds;
 
