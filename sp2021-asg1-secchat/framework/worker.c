@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "api.h"
 #include "util.h"
@@ -22,8 +23,13 @@ struct worker_state {
  *        the client.
  */
 static int handle_s2w_notification(struct worker_state *state) {
-  /* TODO implement the function */
-  return -1;
+  char message[100];
+  FILE *fp = fopen("database", "r");
+  fread(message,1,100,fp);
+  fclose(fp);
+
+  send(state->api.fd,message,100,0);
+  return 0;
 }
 
 /**
@@ -57,9 +63,15 @@ static int execute_request(
   struct worker_state *state,
   const struct api_msg *msg) {
 
-  /* TODO handle request and reply to client */
+  FILE *fp = fopen("database", "w");
+  char* message = msg->message;
+  fwrite(message,1,100,fp);
+  fclose(fp);
 
-  return -1;
+  notify_workers(state);
+
+  /* TODO handle request and reply to client */
+  return 0;
 }
 
 /**

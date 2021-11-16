@@ -4,24 +4,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
+
 
 #include "api.h"
 #include "ui.h"
 #include "util.h"
-#include "string.h"
 
-#define TRUE 1
-#define FALSE 0
-
-//int ontbeest = TRUE;
-int ontbeest = FALSE;
-#define log(x) if(ontbeest) { printf(x); printf("\n"); }
+#define NEWLINE 10
+#define ATSYMBOL 64
 
 struct client_state {
-	struct api_state api;
-	int eof;
-	struct ui_state ui;
-	/* TODO client state variables go here */
+  struct api_state api;
+  int eof;
+  struct ui_state ui;
+  /* TODO client state variables go here */
 };
 
 /**
@@ -29,73 +26,82 @@ struct client_state {
  *        connection fd. Fails with -1.
  */
 static int client_connect(struct client_state *state,
-	const char *hostname, uint16_t port) {
-	int fd;
-	struct sockaddr_in addr;
+  const char *hostname, uint16_t port) {
+  int fd;
+  struct sockaddr_in addr;
 
-	assert(state);
-	assert(hostname);
+  assert(state);
+  assert(hostname);
 
-	/* look up hostname */
-	if (lookup_host_ipv4(hostname, &addr.sin_addr) != 0) return -1;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
+  /* look up hostname */
+  if (lookup_host_ipv4(hostname, &addr.sin_addr) != 0) return -1;
+  addr.sin_family = AF_INET;
+  addr.sin_port = htons(port);
 
-	/* create TCP socket */
-	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 0) {
-		perror("error: cannot allocate server socket");
-		return -1;
-	}
+  /* create TCP socket */
+  fd = socket(AF_INET, SOCK_STREAM, 0);
+  if (fd < 0) {
+    perror("error: cannot allocate server socket");
+    return -1;
+  }
 
-	/* connect to server */
-	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
-		perror("error: cannot connect to server");
-		close(fd);
-		return -1;
-	}
+  /* connect to server */
+  if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
+    perror("error: cannot connect to server");
+    close(fd);
+    return -1;
+  }
 
-	return fd;
+  return fd;
 }
 
-static int client_process_command(struct client_state *state)
-{
-	/* TODO read and handle user command from stdin;
-	* set state->eof if there is no more input (read returns zero)
-	*/
-	
-	String userInput, argument0, argument1, argument2;
-	newString(&userInput, 20); 	// Set base size to 20.
-	newString(&argument0, 20); 	// Set base size to 20.
-	newString(&argument1, 20); 	// Set base size to 20.
-	newString(&argument2, 20); 	// Set base size to 20.
-	//printf("\n> "); 			// Notify user that the program is waiting for input.
-	verkrijgInvoer(&userInput); // Actually fetches the user input.
-	
-	verkrijgArgument(&userInput, &argument0, 0);
-	verkrijgArgument(&userInput, &argument1, 1);
-	verkrijgArgument(&userInput, &argument2, 2);
-	
-	/*printf("\nArgument 0: %s\n", getString(&argument0));
-	printf("Argument 1: %s\n", getString(&argument1));
-	printf("Argument 2: %s\n", getString(&argument2));*/
-	
-	if(userInput.size == 0) { state->eof = 1; }
-	else { state->eof = 0; }
-	
-	if(strcmp(getString(&argument0), "/exit") == 0) { printf("exitcommand\n"); }
-	else if(strcmp(getString(&argument0), "/login") == 0) { printf("logincommand\n"); }
-	else if(strcmp(getString(&argument0), "/register") == 0)
-		{ printf("registercommand\n"); }
-	else if(strcmp(getString(&argument0), "/users") == 0) { printf("usercommand\n"); }
-	else if(getString(&argument0)[0] == '@') { printf("privatemsg\n"); }
-	else { send(state->api.fd, getString(&userInput), userInput.size, 0); }
-	
-	verwijderString(&userInput);
-	verwijderString(&argument0);
-	verwijderString(&argument1);
-	verwijderString(&argument2);
-	return 0;
+static int client_process_command(struct client_state *state) {
+
+  assert(state);
+
+  char* input = state->api.input;
+  memset(input,0,100);
+  int length = getInput(input);
+  if(length == -1) {
+    state->eof = EOF;
+    return 0;
+  }
+
+  bool valid = checkInput(input);
+  if(!valid){
+    return 0;
+  }
+
+  struct argument* command = malloc(sizeof(struct argument));
+  command->length = getArgumentLength(input,1);
+  getArgument(input,command,1);
+
+  if(strcmp(command->data,"/exit") == 0) {
+    printf("exitcommand\n");
+  }
+  else if(strcmp(command->data,"/login") == 0) {
+    printf("logincommand\n");
+  }
+  else if(strcmp(command->data,"/register") == 0) {
+    printf("registercommand\n");
+  }
+  else if(strcmp(command->data,"/users") == 0) {
+    printf("usercommand\n");
+  }
+  else if(command->data[0] == ATSYMBOL) {
+    printf("privatemsg\n");
+  }
+  else {
+    send(state->api.fd,input,100,0);
+  }
+
+  argumentFree(command);
+  
+  /* TODO read and handle user command from stdin;
+   * set state->eof if there is no more input (read returns zero)
+   */
+
+  return 0;
 }
 
 /**
@@ -104,12 +110,13 @@ static int client_process_command(struct client_state *state)
  * @param msg     Message to handle
  */
 static int execute_request(
-	struct client_state *state,
-	const struct api_msg *msg) {
-	
-	/* TODO handle request and reply to client */
-	
-	return 0;
+  struct client_state *state,
+  const struct api_msg *msg) {
+
+  printTime();
+  printf("%s",msg->message);
+
+  return 0;
 }
 
 /**
@@ -117,28 +124,28 @@ static int execute_request(
  * @param state   Initialized client state
  */
 static int handle_server_request(struct client_state *state) {
-	struct api_msg msg;
-	int r, success = 1;
+  struct api_msg msg;
+  int r, success = 1;
 
-	assert(state);
+  assert(state);
 
-	/* wait for incoming request, set eof if there are no more requests */
-	r = api_recv(&state->api, &msg);
-	if (r < 0) return -1;
-	if (r == 0) {
-		state->eof = 1;
-		return 0;
-		}
+  /* wait for incoming request, set eof if there are no more requests */
+  r = api_recv(&state->api, &msg);
+  if (r < 0) return -1;
+  if (r == 0) {
+    state->eof = 1;
+    return 0;
+  }
 
-	/* execute request */
-	if (execute_request(state, &msg) != 0) {
-	success = 0;
-	}
+  /* execute request */
+  if (execute_request(state, &msg) != 0) {
+    success = 0;
+  }
 
-	/* clean up state associated with the message */
-	api_recv_free(&msg);
+  /* clean up state associated with the message */
+  api_recv_free(&msg);
 
-	return success ? 0 : -1;
+  return success ? 0 : -1;
 }
 
 /**
@@ -148,101 +155,103 @@ static int handle_server_request(struct client_state *state) {
  *
  */
 static int handle_incoming(struct client_state *state) {
-	log("static int handle_incoming(struct client_state *state) {");
-	int fdmax, r;
-	fd_set readfds;
+  int fdmax, r;
+  fd_set readfds;
 
-	assert(state);
+  assert(state);
 
-	/* TODO if we have work queued up, this might be a good time to do it */
+  /* TODO if we have work queued up, this might be a good time to do it */
 
-	/* TODO ask user for input if needed */
+  /* TODO ask user for input if needed */
 
-	/* list file descriptors to wait for */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(state->api.fd, &readfds);
-	fdmax = state->api.fd;
+  /* list file descriptors to wait for */
+  FD_ZERO(&readfds);
+  FD_SET(STDIN_FILENO, &readfds);
+  FD_SET(state->api.fd, &readfds);
+  fdmax = state->api.fd;
 
-	/* wait for at least one to become ready */
-	r = select(fdmax+1, &readfds, NULL, NULL, NULL);
-	if (r < 0) {
-		if (errno == EINTR) { return 0; }
-		perror("error: select failed");
-		return -1;
-		}
+  /* wait for at least one to become ready */
+  r = select(fdmax+1, &readfds, NULL, NULL, NULL);
+  if (r < 0) {
+    if (errno == EINTR) return 0;
+    perror("error: select failed");
+    return -1;
+  }
 
-	/* handle ready file descriptors */
-	if (FD_ISSET(STDIN_FILENO, &readfds)) {
-	return client_process_command(state);
-	}
-	/* TODO once you implement encryption you may need to call ssl_has_data
+  /* handle ready file descriptors */
+  if (FD_ISSET(STDIN_FILENO, &readfds)) {
+    return client_process_command(state);
+  }
+  /* TODO once you implement encryption you may need to call ssl_has_data
    * here due to buffering (see ssl-nonblock example)
    */
-	if (FD_ISSET(state->api.fd, &readfds)) {
-	return handle_server_request(state);
-	}
-	return 0;
+  if (FD_ISSET(state->api.fd, &readfds)) {
+    return handle_server_request(state);
+  }
+  return 0;
 }
 
 static int client_state_init(struct client_state *state) {
-	/* clear state, invalidate file descriptors */
-	memset(state, 0, sizeof(*state));
+  /* clear state, invalidate file descriptors */
+  memset(state, 0, sizeof(*state));
 
-	/* initialize UI */
-	ui_state_init(&state->ui);
+  /* initialize UI */
+  ui_state_init(&state->ui);
 
-	/* TODO any additional client state initialization */
+  /* TODO any additional client state initialization */
 
-	return 0;
+  return 0;
 }
 
 static void client_state_free(struct client_state *state) {
 
-	/* TODO any additional client state cleanup */
+  /* TODO any additional client state cleanup */
 
-	/* cleanup API state */
-	api_state_free(&state->api);
+  /* cleanup API state */
+  api_state_free(&state->api);
 
-	/* cleanup UI state */
-	ui_state_free(&state->ui);
+  /* cleanup UI state */
+  ui_state_free(&state->ui);
 }
 
 static void usage(void) {
-	printf("usage:\n");
-	printf("  client host port\n");
-	exit(1);
+  printf("usage:\n");
+  printf("  client host port\n");
+  exit(1);
 }
 
 int main(int argc, char **argv) {
-	setvbuf(stdout, NULL, _IONBF, 0);
-	int fd;
-	uint16_t port;
-	struct client_state state;
+  int fd;
+  uint16_t port;
+  struct client_state state;
 
-	/* check arguments */
-	if (argc != 3) usage();
-	if (parse_port(argv[2], &port) != 0) usage();
+  
+  /* disable buffering of the output*/
+  setvbuf(stdout, NULL, _IONBF, 0);
 
-	/* preparations */
-	client_state_init(&state);
+  /* check arguments */
+  if (argc != 3) usage();
+  if (parse_port(argv[2], &port) != 0) usage();
 
-	/* connect to server */
-	fd = client_connect(&state, argv[1], port);
-	if (fd < 0) return 1;
+  /* preparations */
+  client_state_init(&state);
 
-	/* initialize API */
-	api_state_init(&state.api, fd);
+  /* connect to server */
+  fd = client_connect(&state, argv[1], port);
+  if (fd < 0) return 1;
 
-	/* TODO any additional client initialization */
+  /* initialize API */
+  api_state_init(&state.api, fd);
 
-	/* client things */
-	while (!state.eof && handle_incoming(&state) == 0);
+  /* TODO any additional client initialization */
 
-	/* clean up */
-	/* TODO any additional client cleanup */
-	client_state_free(&state);
-	close(fd);
+  /* client things */
+  while (!state.eof && handle_incoming(&state) == 0);
 
-	return 0;
+  /* clean up */
+  /* TODO any additional client cleanup */
+  client_state_free(&state);
+  close(fd);
+
+  return 0;
 }
