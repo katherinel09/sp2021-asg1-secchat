@@ -2,109 +2,109 @@
 
 struct String
 {
-	int sp;
-	int size;
+	int bladwijzer;
+	int grootte;
 	char *buffer;
 };
 typedef struct String String;
 
-void newString(String *n, int size)
+void nieuweString(String *n, int grootte)
 {
-	n -> size = size;
-	n -> buffer = (char*) malloc(size*sizeof(char));
-	n -> sp = 0;
+	n -> grootte = grootte;
+	n -> buffer = (char*) malloc(grootte*sizeof(char));
+	n -> bladwijzer = 0;
 }
 
-void resetString(String *n)
+void herstelString(String *n)
 {
-	for(int i = 0; i < n->size; i++) { n -> buffer[i] = '\0'; }
-	n -> sp = 0;
+	for(int i = 0; i < n->grootte; i++) { n -> buffer[i] = '\0'; }
+	n -> bladwijzer = 0;
 }
 
 void verwijderString(String *s) { free(s->buffer); }
 
-void setToSize(String *s, int n_size)
+void wijzigGrootte(String *s, int n_grootte)
 {
-	if(n_size == 0) { n_size = 1; }
-	char *temp = (char*) malloc(s->size*sizeof(char));
-	for(unsigned short int i = 0; i < s->size; i++) { temp[i] = s->buffer[i];}
-	free(s->buffer); s->buffer = (char*) malloc(n_size*sizeof(char));
-	int t = (s->size > n_size ? n_size : s->size);
-	if(t > s->sp) { t = s->sp; }
+	if(n_grootte == 0) { n_grootte = 1; }
+	char *tijdelijk = (char*) malloc(s->grootte*sizeof(char));
+	for(unsigned short int i = 0; i < s->grootte; i++) { tijdelijk[i] = s->buffer[i];}
+	free(s->buffer); s->buffer = (char*) malloc(n_grootte*sizeof(char));
+	int t = (s->grootte > n_grootte ? n_grootte : s->grootte);
+	if(t > s->bladwijzer) { t = s->bladwijzer; }
 	for(unsigned short int i = 0; i < t; i++)
-	{ s->buffer[i] = temp[i]; }
-	free(temp); s->size = n_size;
+	{ s->buffer[i] = tijdelijk[i]; }
+	free(tijdelijk); s->grootte = n_grootte;
 }
 
-void trim(String *s) { setToSize(s, s->sp); }
+void snoei(String *s) { wijzigGrootte(s, s->bladwijzer); }
 
-void doubleStringSize(String *s)
+void verdubbelStringGrootte(String *s)
 {
-	char *temp = (char*) malloc(s->size*sizeof(char));
-	for(unsigned short int i = 0; i < s->size; i++) { temp[i] = s->buffer[i];}
-	free(s->buffer); s->size *= 2;
-	s->buffer = (char*) malloc(s->size*sizeof(char));
-	for(unsigned short int i = 0; i < s->size / 2; i++) { s->buffer[i] = temp[i]; }
-	free(temp);
+	char *t = (char*) malloc(s->grootte*sizeof(char));
+	for(unsigned short int i = 0; i < s->grootte; i++) { t[i] = s->buffer[i];}
+	free(s->buffer); s->grootte *= 2;
+	s->buffer = (char*) malloc(s->grootte*sizeof(char));
+	for(unsigned short int i = 0; i < s->grootte / 2; i++) { s->buffer[i] = t[i]; }
+	free(t);
 }
 
-void push(String* s, char element)
+void druk(String* s, char element)
 {
-	s -> buffer[s -> sp] = element;
-	s -> sp++;
+	s -> buffer[s -> bladwijzer] = element;
+	s -> bladwijzer++;
 	
-	if(s->sp >= s->size) { doubleStringSize(s); }
+	if(s->bladwijzer >= s->grootte) { verdubbelStringGrootte(s); }
 }
 
-void set(String *s, int i, char c)
+void wijzig(String *s, int i, char c)
 {
-	if(! (i >= 0 && i < s->sp)) { return; }
+	if(! (i >= 0 && i < s->bladwijzer)) { return; }
 	s->buffer[i] = c;
 }
 
-char get(String *s, int i)
+char verkrijg(String *s, int i)
 {
-	if(! (i >= 0 && i < s->sp)) { return '\0'; }
+	if(! (i >= 0 && i < s->bladwijzer)) { return '\0'; }
 	return s->buffer[i];
 }
 
-char pop(String* s)
+char knal(String* s)
 {
-	if(s -> sp == 0) { return '\0'; }
+	if(s -> bladwijzer == 0) { return '\0'; }
 	
-	s -> sp--;
-	char c = s -> buffer[s -> sp];
-	s -> buffer[s -> sp] = '\0';
+	s -> bladwijzer--;
+	char c = s -> buffer[s -> bladwijzer];
+	s -> buffer[s -> bladwijzer] = '\0';
 	return c;
 }
 
-char* getString(String *s) { return s->buffer; }
+char* verkrijgString(String *s) { return s->buffer; }
 
 void verkrijgInvoer(String *s)
 {
-	resetString(s);
+	herstelString(s);
 	char ch = ' ';
 	while(ch != '\n')
 	{
 		ch = getchar();
-		push(s, ch);
+		druk(s, ch);
 	}
 
-	trim(s);
-	pop(s);
+	snoei(s);
+	knal(s);
 }
 
-void verkrijgArgument(String *invoer, String *verkregenArgument, int argumentNummer)
+void verkrijgWoord(String *s, String *verkregenWoord, int woordNummer)
 {
-	int argumentTeller = 0;
-	resetString(verkregenArgument);
-	for(int i = 1; i < invoer->size; i++)
+	int woordenteller = 0;
+	herstelString(verkregenWoord);
+	for(int i = 1; i < s->grootte; i++)
 	{
-		if(invoer->buffer[i-1] == ' ' || invoer->buffer[i-1] == '\t') { continue; }
-		if(argumentTeller == argumentNummer)
-			{ push(verkregenArgument, invoer->buffer[i-1]); }
-		if(i == invoer->size-1 || invoer->buffer[i] == ' ' || invoer->buffer[i] == '\t') { argumentTeller++; }
+		if(s->buffer[i-1] == ' ' || s->buffer[i-1] == '\t') { continue; }
+		if(woordenteller == woordNummer)
+			{ druk(verkregenWoord, s->buffer[i-1]); }
+		if(i == s->grootte-1 || s->buffer[i] == ' ' || s->buffer[i] == '\t') { woordenteller++; }
 	}
-	if(invoer->buffer[invoer->size-1] == ' ' || invoer->buffer[invoer->size-1] == '\t')
-		{ push(verkregenArgument, invoer->buffer[invoer->size-1]); }
+	if(s->buffer[s->grootte-1] == ' ' || s->buffer[s->grootte-1] == '\t')
+		{ druk(verkregenWoord, s->buffer[s->grootte-1]); }
 }
