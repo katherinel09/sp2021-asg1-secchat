@@ -8,22 +8,64 @@ The state of this README currently reflects the functionality as November 16 for
 # To compile: 
 Run 'make all' in the root directory. 
 
-#### How the server and the client communicate
-Currently, we 
+### Methods in server.c
+```c=
+static int create_server_socket(uint16_t port)
+static void child_add(struct server_state *state, int worker_fd)
+static void children_check(struct server_state *state)
+static void close_server_handles(struct server_state *state)
+static int handle_connection(struct server_state *state)
+static int handle_s2w_closed(struct server_state *state, int index)
+static int handle_s2w_write(struct server_state *state, int index)
+static void handle_sigchld(int signum)
+static void register_signals(void)
+static void usage(void)
+static int server_state_init(struct server_state *state)
+static int handle_incoming(struct server_state *state)
+int main(int argc, char **argv)
+```
 
+### Data flow through server.c
 
-=======
+First, the user must start the server. The program server is run from the application’s root directory with a single argument, port_num, which is the TCP port number for the server to listen on.
 
-# The goal of this application is to build a secure chat application between a client and a server. 
+```bash
+$ ./server port_num &
+```
 
-# To compile: run 'make all' in the root directory. 
+In the main funtion, a reference for the port is defined as well as a new server_state struct. The arguments are then parsed to insure that no malicious arguments may be inputted by an attacker and affect out system. 
 
-#### Program description - The description should be sufficiently detailed for a third party to be able to write a new client or server program that is able to interface with your programs, without having to read your code.
+The server then begins to start listning and waiting for connects. When the server is no longer needed, allocated memory is freed and the program exits a return code of 0. 
 
-SP2021-ASF1-SECCHAT is a standalone program that consists of a 'chat server' which maintains a chat states which create conversation, as well as a 'chat client' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include but not limit to users sending and receiving private and public messages. 
->>>>>>> 5979c934d686efd16a8c6a3c9329ef71bf370c6c
+### Methods in client.c
+```c=
+static int client_connect(struct client_state *state, const char *hostname, uint16_t port) 
+static int client_process_command(struct client_state *state) 
+execute_request( struct client_state *state, const struct api_msg *msg) 
+static int handle_server_request(struct client_state *state)
+static int handle_incoming(struct client_state *state)
+static int client_state_init(struct client_state *state)
+static void client_state_free(struct client_state *state)
+```
 
-#### Functional requirements of the client and server
+### Data flow through client.c
+
+The user runs the client side with the below parameters, at the same port as the server.
+
+```bash
+$ ./client localhost port_num
+```
+
+First, we disable buffering of the output to ensure that hackers are unable to mine for private data. Once this is done through the setvbuf function, we parse the number of inputted arguments for correctness, as well as ensuring that there are no possibilities of malicious inputs. 
+
+Once the inputs are parsed, we initialize the client state and connect the client to the server. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
+
+In the client side, we check if the message exitcommand, logincommand, registercommand, usercommand, or privatemessage is sent. 
+
+### How the server and the client communicate
+Currently, the server is first set up, then clients are able to join the server.  
+
+### Functional requirements implemented within the client and server
 
 Client:
 
@@ -80,31 +122,15 @@ To prevent a hacker from reading, modifying, injecting, or blocking data over a 
 
 3. Attacks may attempt to establish a connection with any client or the server, spoofing her network address to any possible value.
 
-
 4. Attackers may implement a malicious client to attack either the server or other clients by sending specially crafted data.
 
 5. Attackers may implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
-
 
 Furthermore, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we
 
 #### Possible threats we did not prevent:
 
 #### User interface
-
-The games interfaces with the user in a number of ways.
-
-First, the user must start the server. The program server is run from the application’s root directory with a single argument, port_num, which is the TCP port number for the server to listen on.
-
-```bash
-$ ./server port_num &
-```
-
-Then, the user runs the client side with the below parameters, at the same port as the server.
-
-```bash
-$ ./client localhost port_num
-```
 
 ```c=
 inputline
@@ -125,21 +151,6 @@ password
 = "/users"
 = TOKEN
 = TOKEN
-```
-
-
-#### Dataflow through modules
-
-1. _main_ in `server.c` parses and validates arguments
-
-#### Pseudo code (plain English-like language) for logic/algorithmic flow
-
-**Server.c**
-
-Purpose:
-
-```c=
-
 ```
 
 #### Testing plan
