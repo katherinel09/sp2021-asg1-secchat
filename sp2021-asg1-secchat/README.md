@@ -35,11 +35,11 @@ $ ./server port_num &
 
 In the main funtion, a reference for the port is defined as well as a new server_state struct. The arguments are then parsed to ensure that no malicious arguments may be inputted by an attacker and affect out system. 
 
-Them, we initialize the state of the server using the reference to the above struct. We clear the previous memory and begin to initialize the correct sockets to the specified ports according to the system reqiurements. 
+Then, we initialize the state of the server using the reference to the above struct. We clear the previous memory and begin to initialize the correct sockets to the specified ports according to the system requirements. 
 
-Now, the server is able to register SIGCHLD signals and will interrupt accept them, while SIGPIPE signals are completely ignored. The server then is called to make the connections between sockets and ports that were earlier initialized, thus allowing the server to start listening for incoing client conenctions. 
+Now, the server is able to register SIGCHLD signals and will accept them, while SIGPIPE signals are completely ignored. The server then is called to make the connections between sockets and ports that were earlier initialized, thus allowing the server to start listening for incoming client conenctions. 
 
-While the server is waiting, it will continuously check for new client connections through the children_check method. The server will infinitely check if a child has finished or not, and if they did finish, then how the child died. The server then parses the messages of all the existing children, by allocating read and write file descriptor references. The program will then inifintely handle incoming notifcations and send outgoing notifications to the client until terminated. 
+While the server is waiting, it will continuously check for new client connections through the children_check method. The server will infinitely check if a child has finished or not, and if they did finish, state how the child died. The server then parses the messages of all the existing children, by allocating read and write file descriptor references. The program will then inifintely handle incoming notifcations and send outgoing notifications to the client until terminated. 
 
 When the server is no longer needed, allocated memory is freed and the program exits a return code of 0. 
 
@@ -64,9 +64,9 @@ $ ./client localhost port_num
 
 First, we disable buffering of the output to ensure that hackers are unable to mine for private data. Once this is done through the setvbuf function, we parse the number of inputted arguments for correctness, as well as ensuring that there are no possibilities of malicious inputs. 
 
-Once the inputs are parsed, we initialize the client state. To do this, we clear the previous memory in the space we wish to store the reference, and then we create a new UI reference.  Once the client is intialized, the client is connceted to the server. Here, we check that the state and the hostname are the anticipated values and a hacker is not attempting to input malicious parameters. Then, we look up the hostname, create the TCP socket, and connect to the server. If any of the previous steps fail, we return an exit code of -1. 
+Once the inputs are parsed, we initialize the client state. To do this, we clear the previous memory in the space we wish to store the reference, and then we create a new UI reference.  Once the client is intialized, the client is connected to the server. Here, we check that the state and the hostname are the anticipated values and a hacker is not attempting to input malicious parameters. Then, we look up the hostname, create the TCP socket, and connect to the server. If any of the previous steps fail, we return an exit code of -1. 
 
-Once the client has successfully connected, we initialized the associated APIs such that we are reference the messages and the states of the API. FInally, the client is able to send and receive messages from the server as long as both parties are working. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
+Once the client has successfully connected, we initialized the associated APIs such that we are reference the messages and the states of the API. Finally, the client is able to send and receive messages from the server as long as both parties are working. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
 
 ### How the server and the client communicate
 Currently, the server is first set up, then clients are able to join the server.  
@@ -103,8 +103,10 @@ In particular:
 4. Restarting the server does not result in any loss of data
 #### How the server and clients communicate
 
-#### Possible types of interactions between server and clients, 
+The server makes multiple workers that handle incoming connections from an external client. Via a socket the worker and the client can send data. Every worker is connected to the server by a different bidrectional socket. By reading or writing to this bidrectional socket either the worker or the server can notify eachother that an action is to be taken. In this way the client can communicate with the server and the server can communicate with all the connected clients.
 
+#### Possible types of interactions between server and clients, 
+Interactions between the server and clients are mostly reading and writing via a socket.
 
 #### TODO: the data layout of all possible types of packets sent
 
@@ -124,7 +126,7 @@ To prevent a hacker from utilizing server and client addresses to gain secret in
 
 2. Attackers may attempt to read, modify, inject, and/or block data sent over any network connection between a client and the server
 
-To prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented several approaches.
+To prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented multiple check functions to see whether or not malicious input was send.
 
 3. Attacks may attempt to establish a connection with any client or the server, spoofing her network address to any possible value.
 
