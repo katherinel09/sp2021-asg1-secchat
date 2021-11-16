@@ -1,7 +1,17 @@
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <stdbool.h>
 
+//#include "string.h"
 #include "api.h"
+
+#define BLANKSPACE 32
+#define TAB 9
+#define NEWLINE 10
+#define READ_SIZE 256
 
 /**
  * @brief         Receive the next message from the sender and stored in @msg
@@ -10,14 +20,17 @@
  * @return        Returns 1 on new message, 0 in case socket was closed,
  *                or -1 in case of error.
  */
-int api_recv(struct api_state *state, struct api_msg *msg) {
+int api_recv(struct api_state *state, struct api_msg *msg)
+{
+	assert(state);
+	assert(msg);
 
-  assert(state);
-  assert(msg);
+	msg->message = calloc(READ_SIZE, 1);
+	int length = recv(state->fd, msg->message, READ_SIZE, 0);
+	printf("Bericht: %s\n", msg->message);
 
-  /* TODO receive a message and store information in *msg */
-
-  return -1;
+	if(length == -1 || length == 0) { return length; }
+	else { return 1; }
 }
 
 /**
@@ -27,6 +40,7 @@ int api_recv(struct api_state *state, struct api_msg *msg) {
 void api_recv_free(struct api_msg *msg) {
 
   assert(msg);
+  free(msg->message);
 
   /* TODO clean up state allocated for msg */
 }
@@ -59,3 +73,6 @@ void api_state_init(struct api_state *state, int fd) {
 
   /* TODO initialize API state */
 }
+
+
+
