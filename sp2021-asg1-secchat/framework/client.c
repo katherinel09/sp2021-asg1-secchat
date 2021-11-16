@@ -64,38 +64,44 @@ static int client_process_command(struct client_state *state)
 	* set state->eof if there is no more input (read returns zero)
 	*/
 	
-	String userInput, argument0, argument1, argument2;
-	newString(&userInput, 20); 	// Set base size to 20.
-	newString(&argument0, 20); 	// Set base size to 20.
-	newString(&argument1, 20); 	// Set base size to 20.
-	newString(&argument2, 20); 	// Set base size to 20.
-	//printf("\n> "); 			// Notify user that the program is waiting for input.
-	verkrijgInvoer(&userInput); // Actually fetches the user input.
+	String invoer, woord_0, woord_1, woord_2;
+	nieuweString(&invoer, 20); 		// Verstel de begingrootte naar twintig.
+	nieuweString(&woord_0, 20); 	// Verstel de begingrootte naar twintig.
+	nieuweString(&woord_1, 20); 	// Verstel de begingrootte naar twintig.
+	nieuweString(&woord_2, 20); 	// Verstel de begingrootte naar twintig.
+	verkrijgInvoer(&invoer); 		// Leest de invoer van de gebruiker
 	
-	verkrijgArgument(&userInput, &argument0, 0);
-	verkrijgArgument(&userInput, &argument1, 1);
-	verkrijgArgument(&userInput, &argument2, 2);
+	verkrijgWoord(&invoer, &woord_0, 0); // Achterhaal het eerste woord van de zin.
+	verkrijgWoord(&invoer, &woord_1, 1); // Achterhaal het tweede woord van de zin.
+	verkrijgWoord(&invoer, &woord_2, 2); // Achterhaal het derde woord van de zin.
 	
-	/*printf("\nArgument 0: %s\n", getString(&argument0));
-	printf("Argument 1: %s\n", getString(&argument1));
-	printf("Argument 2: %s\n", getString(&argument2));*/
+	/*printf("\nArgument 0: %s\n", verkrijgString(&woord_0));
+	printf("Argument 1: %s\n", verkrijgString(&woord_1));
+	printf("Argument 2: %s\n", verkrijgString(&woord_2));*/
 	
-	if(userInput.size == 0) { state->eof = 1; }
+	if(invoer.grootte == 0) { state->eof = 1; }
 	else { state->eof = 0; }
 	
-	if(strcmp(getString(&argument0), "/exit") == 0) { printf("exitcommand\n"); }
-	else if(strcmp(getString(&argument0), "/login") == 0) { printf("logincommand\n"); }
-	else if(strcmp(getString(&argument0), "/register") == 0)
+	if(strcmp(verkrijgString(&woord_0), "/exit") == 0)
+		{ printf("exitcommand\n"); }
+	else if(strcmp(verkrijgString(&woord_0), "/login") == 0)
+		{ printf("logincommand\n"); }
+	else if(strcmp(verkrijgString(&woord_0), "/register") == 0)
 		{ printf("registercommand\n"); }
-	else if(strcmp(getString(&argument0), "/users") == 0) { printf("usercommand\n"); }
-	else if(getString(&argument0)[0] == '@') { printf("privatemsg\n"); }
-	else { send(state->api.fd, getString(&userInput), userInput.size, 0); }
+	else if(strcmp(verkrijgString(&woord_0), "/users") == 0)
+		{ printf("usercommand\n"); }
+	else if(verkrijgString(&woord_0)[0] == '@')
+		{ printf("privatemsg\n"); }
+	else { send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0); }
 	
-	verwijderString(&userInput);
-	verwijderString(&argument0);
-	verwijderString(&argument1);
-	verwijderString(&argument2);
+	/* Geheugenadressen opschonen */
+	verwijderString(&invoer);
+	verwijderString(&woord_0);
+	verwijderString(&woord_1);
+	verwijderString(&woord_2);
 	return 0;
+	
+	/* Opmerking: persoonlijk vind ik het makkelijker om mijn eigen functies en variabelen Nederlandse namen te geven, zodat het makkelijker voor mij is om te onderscheiden tussen wat ik zelf heb geschreven en wat door anderen is geschreven.*/
 }
 
 /**
