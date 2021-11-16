@@ -1,6 +1,5 @@
 # Security and Privacy README.md 
 # sp2021-asg1-seccaht
-
 ### Program Description
 SP2021-ASF1-SECCHAT is a standalone program that consists of a 'chat server' which maintains a chat states which create conversation, as well as a 'chat client' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include but not limit to users sending and receiving private and public messages. 
 
@@ -13,6 +12,16 @@ Run 'make all' in the root directory.
 Currently, we 
 
 
+=======
+
+# The goal of this application is to build a secure chat application between a client and a server. 
+
+# To compile: run 'make all' in the root directory. 
+
+#### Program description - The description should be sufficiently detailed for a third party to be able to write a new client or server program that is able to interface with your programs, without having to read your code.
+
+SP2021-ASF1-SECCHAT is a standalone program that consists of a 'chat server' which maintains a chat states which create conversation, as well as a 'chat client' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include but not limit to users sending and receiving private and public messages. 
+>>>>>>> 5979c934d686efd16a8c6a3c9329ef71bf370c6c
 
 #### Functional requirements of the client and server
 

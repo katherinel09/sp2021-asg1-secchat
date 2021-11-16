@@ -8,6 +8,10 @@
 #include "api.h"
 #include "ui.h"
 #include "util.h"
+#include "command.h"
+
+#define NEWLINE 10
+#define ATSYMBOL 64
 
 struct client_state {
   struct api_state api;
@@ -54,11 +58,67 @@ static int client_process_command(struct client_state *state) {
 
   assert(state);
 
+  struct argument* argument = malloc(sizeof(struct argument));
+  char* input = calloc(100,1);
+  char c;
+  int length = 0;
+  
+  for(int i = 0; i < 100; i++) {
+    c = fgetc(stdin);
+    if(c == EOF) {
+      printf("eof");
+      state->eof = EOF;
+    }
+    else if(c != NEWLINE){
+      input[i] = c;
+      length++;
+    }
+    else {
+      input[i] = c;
+      break;
+    }
+  }
+
+  if(state->eof != EOF) {
+    printf("you entered: ");
+    for(int i = 0; i < length; i++) {
+      printf("%c", input[i]);
+    }
+    printf("\n");
+  }
+
+  argument->length = getCommandLength(input);
+  //printf("length: %i\n", argument->length);
+
+  getCommand(input,argument);
+
+  if(strcmp(argument->arg,"/exit") == 0) {
+    printf("exitcommand\n");
+  }
+  else if(strcmp(argument->arg,"/login") == 0) {
+    printf("logincommand\n");
+  }
+  else if(strcmp(argument->arg,"/register") == 0) {
+    printf("registercommand\n");
+  }
+  else if(strcmp(argument->arg,"/users") == 0) {
+    printf("usercommand\n");
+  }
+  else if(argument->arg[0] == ATSYMBOL) {
+    printf("privatemsg\n");
+  }
+  else {
+    printf("%s",input);
+  }
+
+  free(argument);
+  free(input);
+  
   /* TODO read and handle user command from stdin;
    * set state->eof if there is no more input (read returns zero)
    */
 
-  return -1;
+  return 0;
 }
 
 /**
@@ -180,6 +240,10 @@ int main(int argc, char **argv) {
   int fd;
   uint16_t port;
   struct client_state state;
+
+  
+  /* disable buffering of the output*/
+  setvbuf(stdout, NULL, _IONBF, 0);
 
   /* check arguments */
   if (argc != 3) usage();
