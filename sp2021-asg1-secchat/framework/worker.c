@@ -4,10 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "api.h"
 #include "util.h"
 #include "worker.h"
+
+#define READ_SIZE 256
+#define BUFFER_SIZE 256
 
 struct worker_state {
   struct api_state api;
@@ -21,9 +25,15 @@ struct worker_state {
  * @brief Reads an incoming notification from the server and notifies
  *        the client.
  */
-static int handle_s2w_notification(struct worker_state *state) {
-  /* TODO implement the function */
-  return -1;
+static int handle_s2w_notification(struct worker_state *state)
+{
+	char message[READ_SIZE];
+	FILE *fp = fopen("database", "r");
+	fread(message, 1, READ_SIZE, fp);
+	fclose(fp);
+
+	send(state->api.fd, message, READ_SIZE, 0);
+	return 0;
 }
 
 /**
@@ -57,9 +67,15 @@ static int execute_request(
   struct worker_state *state,
   const struct api_msg *msg) {
 
-  /* TODO handle request and reply to client */
+  FILE *fp = fopen("database", "w");
+  char* message = msg->message;
+  fwrite(message, 1, READ_SIZE, fp);
+  fclose(fp);
 
-  return -1;
+  notify_workers(state);
+
+  /* TODO handle request and reply to client */
+  return 0;
 }
 
 /**
@@ -92,7 +108,7 @@ static int handle_client_request(struct worker_state *state) {
 }
 
 static int handle_s2w_read(struct worker_state *state) {
-  char buf[256];
+  char buf[BUFFER_SIZE];
   ssize_t r;
 
   /* notification from the server that the workers must notify their clients
