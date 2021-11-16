@@ -71,6 +71,11 @@ static int client_process_command(struct client_state *state)
 	nieuweString(&woord_2, 20); 	// Verstel de begingrootte naar twintig.
 	verkrijgInvoer(&invoer); 		// Leest de invoer van de gebruiker
 	
+	if(invoer.grootte > 256)
+	{
+		printf("\nOpmerking: hou er rekening mee dat als jouw bericht langer is dan 256 tekens, dat alleen het laatste gedeelte van jouw bericht aankomt bij de andere gebruikers.\n\n");
+	}
+	
 	verkrijgWoord(&invoer, &woord_0, 0); // Achterhaal het eerste woord van de zin.
 	verkrijgWoord(&invoer, &woord_1, 1); // Achterhaal het tweede woord van de zin.
 	verkrijgWoord(&invoer, &woord_2, 2); // Achterhaal het derde woord van de zin.
