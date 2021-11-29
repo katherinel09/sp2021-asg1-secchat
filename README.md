@@ -1,7 +1,115 @@
-# sp2021-asg1-secchat
+# Security and Privacy README.md 
+# sp2021-asg1-seccaht
+### Program Description
+SP2021-ASF1-SECCHAT is a standalone program that consists of a '*chat server*' which maintains chat states to allow for a conversation to take place, as well as a '*chat client*' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include (*but won't be limited to*) are users sending and receiving private and public messages. 
 
-### Katherine Lasonde and Mark Wiering
-### Security and Privacy
+The state of this README currently reflects the functionality as November 16 for the first deadline of assignment one. The goal of this deadline is to build a secure chat application between a client and a server. Specifically, we implemented the functionality of sending messages, receiving messages, parsing commands, and showing messages between two servers. 
+
+# To compile: 
+Run '*make*' or '*make all*' in the root directory. 
+
+### Methods in server.c
+```c=
+static int create_server_socket(uint16_t port)
+static void child_add(struct server_state *state, int worker_fd)
+static void children_check(struct server_state *state)
+static void close_server_handles(struct server_state *state)
+static int handle_connection(struct server_state *state)
+static int handle_s2w_closed(struct server_state *state, int index)
+static int handle_s2w_write(struct server_state *state, int index)
+static void handle_sigchld(int signum)
+static void register_signals(void)
+static void usage(void)
+static int server_state_init(struct server_state *state)
+static int handle_incoming(struct server_state *state)
+int main(int argc, char **argv)
+```
+
+### Data flow through server.c
+
+First, the user must start the server. The program server is run from the application’s root directory with a single argument, port_num, which is the TCP port number for the server to listen on.
+
+```bash
+$ ./server port_num &
+```
+
+In the main funtion, a reference for the port is defined as well as a new server_state struct. The arguments are then parsed to ensure that no malicious arguments may be entered by an attacker to manipulate our system. 
+
+Then, we initialise the state of the server using the reference to the above struct. We clear the previous memory addresses and begin to initialise the correct sockets to the specified ports according to the system requirements. 
+
+Now, the server is able to register SIGCHLD signals and will accept them, while SIGPIPE signals are completely ignored. The server then is called to make the connections between sockets and ports that were earlier initialised, thus allowing the server to start listening for incoming client conenctions. 
+
+While the server is waiting, it will continuously check for new client connections through the **children_check** method. The server will infinitely check if a child has finished or not, and if they did finish, state how the child died. The server then parses the messages of all the existing children, by allocating read and write file descriptor references. The program will then infintely handle incoming notifcations and send outgoing notifications to the client until terminated. 
+
+When the server is no longer needed, the allocated memory is freed and the program exits a return code of 0. 
+
+### Methods in client.c
+```c=
+static int client_connect(struct client_state *state, const char *hostname, uint16_t port) 
+static int client_process_command(struct client_state *state) 
+execute_request( struct client_state *state, const struct api_msg *msg) 
+static int handle_server_request(struct client_state *state)
+static int handle_incoming(struct client_state *state)
+static int client_state_init(struct client_state *state)
+static void client_state_free(struct client_state *state)
+```
+
+### Data flow through client.c
+
+The user runs the client side with the below parameters, at the same port as the server.
+
+```bash
+$ ./client localhost port_num
+```
+
+First, we disable buffering of the output to ensure that hackers are unable to mine for private data. Once this is done through the setvbuf function, we parse the number of inputted arguments for correctness, as well as ensuring that there are no possibilities of malicious inputs. 
+
+Once the inputs are parsed, we initialise the client state. To do this, we clear the previous memory in the space we wish to store the reference, and then we create a new user interface reference.  Once the client is intialised, the client is connected to the server. Here, we check that the state and the hostname are the anticipated values and a hacker is not attempting to input malicious parameters. Then, we look up the hostname, create the TCP socket, and connect to the server. If any of the previous steps fail, we return an exit code of **-1**. 
+
+Once the client has successfully connected, we initialised the associated APIs such that we are referencing the messages and the states of the API. Finally, the client is able to send and receive messages from the server as long as both parties are working. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
+
+### How the server and the client communicate
+Currently, the server is first set up, then clients are able to join the server.  
+
+### Functional requirements implemented within the client and server
+
+Client:
+
+- The client is able to register a new account through a username and password. The max length for usernames and passwords is 30 characters.
+- The client can only login to an account if he/she uses the associated password
+- The client can exit by logging out from the server. This also terminates the client program
+- When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
+- The client can send public messages to all users and private messages to a specified users
+- Messages are displayed to the client with a timestamp, author, and recipient (for private messages)
+- Duplicate usernames are not allowed on the server
+- The maximum length for messages is 500 characters on the server
+- Can provide a list of logged in users at a client's request
+- Messages are displayed to the intended client(s) immediately
+
+Server:
+
+- The server program supports all the functionality needed to provide the aforementioned client features
+- No more than 20 simultaneous connections are allowed
+- The server program takes care of all necessary storage for security
+
+#### Nonfunctional program requirements
+
+In addition to several functional requirements, our program also meets a set of nonfunctional requirements.  
+
+In particular: 
+1. Permanent state information is stored on a server-side database named chat.db, which can be retrieved by the client as needed. 
+2. The server and client's keys are both stored in the directories **serverkeys** and **clientkeys** within the root directory
+3. Programs may not access each other's keys without invoking a trusted third party to access the **ttpkeys** directory
+4. Restarting the server does not result in any loss of data
+#### How the server and clients communicate
+
+The server makes multiple workers that handle incoming connections from an external client. Via a socket, the worker and the client can send data. Every worker is connected to the server by a different bidrectional socket. By reading or writing to this bidrectional socket, either the worker or the server can notify each other that an action has to be taken. In this way, the client can communicate with the server and the server can communicate with all the connected clients. 
+
+Currently, there is no limit set to the size of the packets that the client may send to the server. The server, however, reads incoming packets with **size** 256, meaning that if you send a message that is longer than 256 ASCII characters, the server will split your message up in multiple smaller ones (*each with a maximum size of 256 characters, of course*). Only the last portion of the split, however, gets sent to other users. This is a bug that we still need to fix.
+
+#### Possible types of interactions between server and clients, 
+Interactions between the server and clients are mostly reading and writing via a socket.
+
 ### Assignment 1b
 
 For client A to send a message to client B, client A sends a message to the server, which then reads and writes the message to client B via a socket. Thus, the server is always an intermediary between two clients sending and receiving messages, and there are no direct connections between clients. This is an important feature of our program since reading and modifying data sent over any network connection is explicit in our threat model. We want to lower the chances of one client taking advantage of another client's lax security behaviours and launching an attack.
@@ -26,78 +134,72 @@ Additionally, code injections are a specific code in our threat model. Thus, to 
 
 Finally, to prevent method modification, we are going to use hashing within RSA encryption to check if a message has been modified. If one client wants to send a message to a second client, they will generate a random hash and compute hash(m) where m is their message. The first client will then apply their private key to the hashed message, and send the message to the second client. The receiver will then apply the first client’s public key to the received message. In other words, the second client will compute the applied public key to the private key application of the hashed messaged. If the result is the same as hash(m), then the message was not modified. However, if the hash has changed, then a modification must have occurred. Thus, our program double checks all messages to ensure the hash(m) matches between the first and second client. 
 
+### How we acheived our security goals: 
 
+Throughout the project, we identified several potential types of attacks our program was susceptible to, as well as ways to prevent those attacks. 
 
+##### List of potential attacks and approaches taken to prevent the attack:  
 
+Since Mallory does not have local access to our system, she can only access the program through the client or the server. To prevent her from accessing sensitive information by compromising the program, we implemented several approaches listed below. 
 
+1. Attacks may occur at the addresses at which clients and the server are running.
 
-Other:
+To prevent a hacker from utilising server and client addresses to gain secret information, we placed extra protection on where those addresses can be accessed. 
 
+2. Attackers may attempt to read, modify, inject, and/or block data sent over any network connection between a client and the server.
 
+To prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented multiple check functions to see whether or not malicious input was send.
 
+3. Attacks may attempt to establish a connection with any client or the server, spoofing her network address to any possible value.
 
-This is the private repository for Security and Programming assignment #1 at VU. Please see the inside README.md for more details. 
+4. Attackers may implement a malicious client to attack either the server or other clients by sending specially crafted data.
 
-TO DO from deadline 1a: 
+5. Attackers may implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
 
-#2 [0/1] Can exit program using /exit and CTRL+D (end-of-file)
-[0/1] Exit the client and connect to the client again, is the old
- message shown?
-#1 [0/1] Is the message correctly formatted, including a timestamp
- (see example in assignment). Sender needs not be included yet.
-[1/1] Connect a second client and send a short public message.
- Is it shown immediately in the original client?
-#3 [0/1] Type the bogus command /nonsense, do you get a sensible error
- message?
-[1/2] README.md clearly documents the protocol between client and server,
- including all messages send and the way they are encoded on the
- socket.
+Furthermore, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we plan to implement proper authorisation for every single client, as well as encrypted authentication in every single packet received by a client.
 
---- feedback ---
-Your documentation is very detailed, but unfortunately you did not (yet) document the protocol between client and server (further than that their communication happens via sockets), or describe the messages that are sent and their encoding or data layout.
+#### Possible threats we did not prevent:
 
-#1 The chat messages are not formatted according to the assignment specification. Check the specification Section 5: Each message is shown together with a timestamp, the user who sent it, and for private messages also the recipient. The assignment specification also gives an example of what this can look like.
+At this time, you cannot register, nor can you log in. You just jump into the chat and you can send messages to everyone. The sender of each message is unknown, making the chat highly anonymous, as of now.
 
-#2 Both /exit and CTRL+D do not work. When typing /exit, it is recognized as an exitcommand, but the client freezes and does not exit.
+#### User interface
 
-#3 Bogus commands are simply sent as public messages.
+```c=
+inputline
+command
+= [WHITESPACE] command [WHITESPACE] NEWLINE
+= exitcommand | logincommand | privmsgcommand | pubmsgcommand |
+  registercommand | userscommand
+= "/exit"
+= "/login" WHITESPACE username WHITESPACE password
+exitcommand
+logincommand
+privmsgcommand  = "@" username WHITESPACE message
+pubmsgcommand   = message
+registercommand = "/register" WHITESPACE username WHITESPACE password
+userscommand
+username
+password
+= "/users"
+= TOKEN
+= TOKEN
+```
 
-Deadline 1c TO DO :)))
+#### Testing plan
 
-Functional requirements: 
+This is a very large piece of code on aggregate, so there are many things to test. To do this, both unit and integration testing are necessary.
 
-- The user can register a new account. To do so, they will have to supply a username and a password.
-– You are allowed (but not required) to set a maximum length for the username and/or the password, as long as it is no less than 8 characters.
-- The application prohibits registration of a user with a previously registered username.
-- The user can login. It is only possible to login to an account if one knows the password supplied at registration time.
-- The user can exit. This logs out from the server and terminates the client program.
-- When the client starts, it displays all public messages previously sent by anyone, and all private messages received and sent by the current user, in chronological order from old to new.
-- The user can send a public message to all users.
-- The user can send a private message to a specific user.
-- You are allowed (but not required) to set a maximum length for messages, as long as it is no less than 140 characters.
-- Each message is shown together with a timestamp, the user who sent it, and for private messages also the recipient.
-- The clients only show (1) public messages and (2) private messages of which the logged in user is either the sender or the recipient.
-- Each message will be shown to its recipient(s) immediately (or at least, as immediate as network latency will allow).
-- The client provides a list of logged in users on request.
-- The server program implements a protocol to communicate with the client, supporting all the functionality needed to provide these client features. 
-- The server program takes care of all necessary storage, at least to the extent that security requirements allow. The server may limit the number of simultaneous connections, but this limit must be no less that 10.
-- Implement additional user and/or message metadata, interface elements, and protocol features to ensure the security of the application
-- Where and how you need to use cryptography, and how to manage cryptographic keys.
+- Validity of user agruments for client and server
+- Boundary cases, such as sending the max length of the chat, sending a message to a user that doesn't exist, maximising the number of clients on the server etcetera. 
+- Private versus public message visibility
+- Whether the server works with multiple clients (same or different computers)
+- The program handles users leaving correctly
+- The program exits correctly when the server is closed (whether compromised or not)
 
-Nonfunctional requirements: 
-- All permanent state is stored in a SQLite database on the server side named chat.db, located directly within the application’s root directory. - - This state includes (but is not limited to) users and sent messages. 
-- The client must retrieve this state from the server when needed. 
-- Both the server and the client may use the disk to store cryptographic keys, but only in a dedicated directory named serverkeys or clientkeys respectively, located directly within the application’s root directory. 
-- The programs may not access each other’s keys directories. 
-- The programs may invoke the trusted third party (a script), which can access the ttpkeys directory. Nothing else may be stored on disk by either program. 
-- Connection-bound information (which authenticated user is on the other end, which nonce was sent, etc.) may be stored in memory. 
-- Restarting the server or any of the clients should not result in any loss of data other than the need to re-establish connections.
-- Network connections are only set up by the clients, and only connect to the server. There are no direct connections between clients.
-
-
-
-This is the final application, which should support all the requirements in the assignment. Even if you do not manage to meet all requirements, prioritize at least making sure that the program works. Make sure you pass all the tests in test.py (see Section ?? about testing).
-
-The files to hand in are identical to deadline A, but now also optionally includes files for the web chat feature if you choose to implement it (web-related file types such as .html, .js, .css, etc).
-
-**only allowed to use -lcrypto -lssl -lsqlite3**
+Specific test attacks we tested: 
+- Attackers sending messages on behalf of another user.
+- Attackers modifying messages sent by other users
+- Attackers finding out users’ passwords, private keys, or private messages (even if the server is compromised).
+- Attackers using the client or server programs to achieve privilege escalation on the systems they are running on
+- Attackers attempting to leak or corrupt data in the client or server programs
+- Attackers crashing the client or server programs.
