@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sqlite3.h>
-#include <stdio.h>
 
 #include "api.h"
 #include "ui.h"
@@ -32,9 +30,8 @@ struct client_state {
  */
 static int client_connect(struct client_state *state,
 	const char *hostname, uint16_t port) {
-	int fd, fd2;
+	int fd;
 	struct sockaddr_in addr;
-	fd_set readfds;
 
 	assert(state);
 	assert(hostname);
@@ -58,232 +55,7 @@ static int client_connect(struct client_state *state,
 		return -1;
 	}
 
-	// username
-	char *username = (char *)malloc(20 * sizeof(char));
-
-	// ask user for input username
-	printf("Please enter a username to login or to register (less than 20 characters.)");
-
-	/* wait for a file descriptor */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(&addr, &readfds);
-
-	// intialize fd2
-	fd2 = (STDIN_FILENO > &addr) ? STDIN_FILENO : &addr ; 
-
-	// handle the user input
-	if(FD_ISSET(STDIN_FILENO, &readfds)){
-		handle_user_input();
-	}
-	if(FD_ISSET(&addr, &readfds)) {
-		username = handle_socket_input(&addr);
-	}
-
-	// check if the username is already in the database
-	// prepare the database
-	int ressy;
-	ressy = query_database_for_username(username);
-
-	int ressy2; 
-
-	if (ressy) {
-		ressy2 = ask_user_for_password(*username, &addr);
-	}
-	else {
-		ressy2 = set_new_user_password(*username, &addr);
-	}
-
 	return fd;
-}
-
-static int querey_database_for_username(char *username, struct sockaddr_in *addr){
-	// start up the database
-	sqlite3 *db;
-    sqlite3_stmt *usrnm = *username;
-
-	int new_q = sqlite3_open(STDIN_FILENO, &db);
-
-
-	if (new_q != SQLITE_OK) {
-        
-        fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
-        sqlite3_close(db);
-        return 1;
-    }
-	else {
-		// prepare because you have to!
-		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);  
-		
-		if (new_q != SQLITE_OK) {
-			fprintf(stderr, "Failed to prepare data");
-			sqlite3_close(db);
-			return 1;
-		}    
-	}
-
-	// now step with the username
-	new_q = sqlite3_step(usrnm);
-    
-    if (new_q == SQLITE_ROW) {
-        printf("Welcome! Please enter your passcode to continue.");
-
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
-		
-		return 0;
-    }
-	else {
-		printf("Welcome new user! Please enter your passcode to complete your registration.");
-
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
-		
-		return 1;
-
-	}
-}
-
-static int ask_user_for_password(char *username, struct sockaddr_in *addr) {
-	// username
-	char *password = (char *)malloc(20 * sizeof(password));
-	fd_set readfds;
-	int fd3;
-
-	// ask user for input username
-	printf("Please enter your password");
-
-	/* wait for a file descriptor */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(&addr, &readfds);
-
-	// start up the database
-	sqlite3 *db;
-    sqlite3_stmt *usrnm = *username;
-
-	int new_q = sqlite3_open(STDIN_FILENO, &db);
-
-
-	if (new_q != SQLITE_OK) {
-        
-        fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
-        sqlite3_close(db);
-        return 1;
-    }
-	else {
-		// prepare because you have to!
-		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);  
-		
-		if (new_q != SQLITE_OK) {
-			fprintf(stderr, "Failed to prepare data");
-			sqlite3_close(db);
-			return 1;
-		}    
-	}
-
-	// now step with the username
-	new_q = sqlite3_step(usrnm);
-    
-    if (new_q == SQLITE_ROW) {
-        printf("Welcome! Please enter your passcode to continue.");
-
-		// intialize fd3
-		fd3 = (STDIN_FILENO > &addr) ? STDIN_FILENO : &addr ; 
-
-		// handle the user input
-		if(FD_ISSET(STDIN_FILENO, &readfds)){
-			handle_user_input();
-		}
-		if(FD_ISSET(&addr, &readfds)) {
-			password = handle_socket_input(&addr);
-		}
-
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
-    }
-
-	// now step with the username
-	new_q = sqlite3_step(password);
-
-	if (new_q == SQLITE_ROW) {
-        printf("Welcome! You have successfully logged in.");
-
-		sqlite3_finalize(password);
-		sqlite3_close(db);
-		return 0;
-    }
-	else {
-		printf("Incorrect password. Try again");
-		return 1;
-	}
-}
-
-static int set_new_user_password(char *username, struct sockaddr_in *addr) {
-	// username
-	char *password = (char *)malloc(20 * sizeof(password));
-	fd_set readfds;
-	int fd3;
-
-	// ask user for input username
-	printf("Please enter your password");
-
-	/* wait for a file descriptor */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(&addr, &readfds);
-
-	// start up the database
-	sqlite3 *db;
-    sqlite3_stmt *usrnm = *username;
-
-	int new_q = sqlite3_open(STDIN_FILENO, &db);
-
-
-	if (new_q != SQLITE_OK) {
-        
-        fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
-        sqlite3_close(db);
-        return 1;
-    }
-	else {
-		// prepare because you have to!
-		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);  
-		
-		if (new_q != SQLITE_OK) {
-			fprintf(stderr, "Failed to prepare data");
-			sqlite3_close(db);
-			return 1;
-		}    
-	}
-
-	// now step with the username
-	new_q = sqlite3_step(usrnm);
-    
-    if (new_q == SQLITE_ROW) {
-        printf("Welcome! Please enter your passcode to continue.");
-
-		// intialize fd3
-		fd3 = (STDIN_FILENO > &addr) ? STDIN_FILENO : &addr ; 
-
-		// handle the user input
-		if(FD_ISSET(STDIN_FILENO, &readfds)){
-			handle_user_input();
-		}
-		if(FD_ISSET(&addr, &readfds)) {
-			password = handle_socket_input(&addr);
-		}
-
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
-		return 0;
-    }
-	else {
-		printf("Failed to assign you a password password. Try again");
-		return 1;
-	}
-
-
 }
 
 static int client_process_command(struct client_state *state)
@@ -316,17 +88,7 @@ static int client_process_command(struct client_state *state)
 	else { state->eof = 0; }
 	
 	if(strcmp(verkrijgString(&woord_0), "/exit") == 0)
-		{
-			printf("exitcommand\n"); 
-			// EXIT
-			exit(0);
-		}
-	else if(strcmp(verkrijgString(&woord_0), "/CTRL+D") == 0)
-		{
-			printf("exitcommand\n"); 
-			// EXIT
-			exit(0);
-		}
+		{ printf("exitcommand\n"); }
 	else if(strcmp(verkrijgString(&woord_0), "/login") == 0)
 		{ printf("logincommand\n"); }
 	else if(strcmp(verkrijgString(&woord_0), "/register") == 0)
