@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 CFLAGS=-g -Wall -Werror -UDEBUG
-LDLIBS=-lsqlite3 -lcrypto -lssl
+LDLIBS=-lsqlite3 #-lcrypto -lssl
 
 all: client server
 
@@ -23,3 +23,7 @@ worker.o: worker.c util.h worker.h
 client: client.o api.o ui.o util.o 
 
 server: server.o api.o util.o worker.o
+
+sqllitetest2: sqllitetest2.o
+
+sqllitetest2.o: sqlite3.h
