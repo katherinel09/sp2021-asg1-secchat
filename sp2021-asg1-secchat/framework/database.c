@@ -14,22 +14,61 @@
 #include "ui.h"
 #include "util.h"
 #include "string.h"
+#include "database.h"
 
-struct client_info
-{
-	char *username;
-	char *password;
-};
+#define DATABASE "users.db"
 
-// creates the database!
+/* Main method */
 int main()
 {
+	create_database();
+	create_table();
+}
+
+/* Method to create a database */
+int create_database() {
 	sqlite3 *db;
+	int ressy = 0;
 	//sqlite3_stmt *statement;
 
 	// Create the data base
-	sqlite3_open("users.db", &db);
+	ressy = sqlite3_open(DATABASE, &db);
+
+	sqlite3_close(db);
+
+	return ressy;
 }
+
+/* Method to create a database */
+int create_table() {
+	sqlite3 *db;
+	int ressy = 0;
+	ressy = sqlite3_open(DATABASE, &db);
+
+
+	const char sql1[5000] = "CREATE TABLE PERSON("
+                      "ID INT PRIMARY KEY     NOT NULL, "
+                      "USERNAME          TEXT    NOT NULL, "
+                      "PASSWORD          TEXT     NOT NULL, "
+                      "STATUS            TEXT     NOT NULL, "
+                      "SIGNATURE         INT 	NOT NULL);";
+
+	// CONSTRAINT USERID PRIMARY KEY (USERNAME)
+	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
+
+	sqlite3_close(db);
+
+	return ressy;
+}
+
+// struct client_info
+// {
+// 	char *username;
+// 	char *password;
+// };
+
+// creates the database!
+
 
 int authenticate_user(sqlite3 *db, char *username, char *password)
 {

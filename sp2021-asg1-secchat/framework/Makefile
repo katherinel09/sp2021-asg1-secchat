@@ -6,7 +6,7 @@ LDLIBS=-lsqlite3 -DSQLITE_USER_AUTHENTICATION #-lcrypto -lssl
 all: client server database
 
 clean:
-	rm -f server client *.o users.db
+	rm -f server client database *.o users.db
 
 ui.o: ui.c ui.h
 

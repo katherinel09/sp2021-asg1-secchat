@@ -1,0 +1,14 @@
+*.o
+
+database
+server
+api.o
+database.o
+server.o
+worker.o
+util.o
+users.db
+
+*DS_Store
+
+*vscode
