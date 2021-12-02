@@ -25,22 +25,26 @@ struct client_info
 int main()
 {
 	sqlite3 *db;
-	sqlite3_stmt *statement;
+	//sqlite3_stmt *statement;
 
 	// Create the data base
 	sqlite3_open("users.db", &db);
 }
 
-int authenticate_user(sqlite3 *db, const char *username, const char *password)
+int authenticate_user(sqlite3 *db, char *username, char *password)
 {
 	int found, ressy;
 	char user_table[500];
 	sqlite3_stmt *stmt;
 
-	char usrnm[] = *username;
-	char pwd[] = *username;
+	//const char usrnm;
+	//const char pwd;
 
-	int bad_char_index = 0;
+	// to do, properly  allocate
+	char *usrnm = username;
+	char *pwd = password;
+
+	//int bad_char_index = 0;
 	if ((strchr(usrnm, '\'') != NULL) || (strchr(pwd, '\'') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include single quote");
@@ -127,15 +131,16 @@ int authenticate_user(sqlite3 *db, const char *username, const char *password)
 	return -1;
 }
 
-int get_pwd_with_db(sqlite3 *db, const char *name, char **pwd_p)
-{
-	sqlite3_stmt *stmt;
-	*pwd_p = NULL;
-	*pwd_p = strdup((char *)sqlite3_column_text(stmt, 0));
-	return 0;
-}
+//int get_pwd_with_db(sqlite3 *db, const char *name, char **pwd_p)
+//{
+	//sqlite3_stmt *stmt;
+	//*pwd_p = NULL;
+	//*pwd_p = strdup((char *)sqlite3_column_text(stmt, 0));
+	//return 0;
+//}
 
-int get_pwd(const char *dbpath, const char *name, char **pwd_p)
+
+int get_pwd(char *dbpath, char *name, char **pwd_p)
 {
 	sqlite3 *db;
 	int r;
@@ -145,25 +150,30 @@ int get_pwd(const char *dbpath, const char *name, char **pwd_p)
 	r = sqlite3_open(dbpath, &db);
 	if (r != SQLITE_OK)
 	{
-		fprintf(stderr, "open database %s "
-						"failed: %s\n",
-				sqlite3_errmsg(db));
+		//fprintf(stderr, "open database %s "
+		//				"failed: %s\n",
+		//		sqlite3_errmsg(db));
 		sqlite3_close(db);
 		return -1;
 	}
 
-	/* perform query */
-	if (get_pwd_with_db(
-			db, name, pwd_p) != 0)
-	{
-		sqlite3_close(db);
-		return -1;
-	}
+	// /* perform query */
+	// if (get_pwd_with_db(
+	// 		db, name, pwd_p) != 0)
+	// {
+	// 	sqlite3_close(db);
+	// 	return -1;
+	// }
 	/* clean up */
 	sqlite3_close(db);
 	return 0;
 }
 
+// On registration, put in everything right away (name, password, status, certificates)
+// Have an sql file, with a bunch of creates that set up the properties of the table
+// Accounts table, message log table, sessions table (keep track of time)
+// create table if not exists, primary key, etc, look for documentation & list of fields (message table (sender, recipient, other important things))
+// name type name type (text is text, signature usignt)
 void create_account_slot()
 {
 	sqlite3 *db;
@@ -179,7 +189,7 @@ void create_account_slot()
 
 	char new_user[500] = {0};
 
-	ressy = sqlite3_exec(db, *new_user, NULL, NULL, NULL);
+	ressy = sqlite3_exec(db, new_user, NULL, NULL, NULL);
 	if (ressy != SQLITE_OK)
 	{
 		printf("There is an error creating your new user slot");
@@ -199,9 +209,9 @@ void login(int fd, struct client_info *client)
 		exit(-1);
 	}
 
-	char usertable[500] = {0};
+	//char usertable[500] = {0};
 
-	char *usrnm = client->username;
+	//char *usrnm = client->username;
 
 	// db.username = username_from_db;
 	// db.password = password_from_db;
@@ -242,279 +252,279 @@ int login_callback_function(int column_count, char **column_value, char **column
 	return 0;
 }
 
-void register_new_user(int fd, struct client_info *client)
-{
-	sqlite3 *db;
-	int ressy = sqlite3_open("users.db", &db);
 
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an error connecting to SQLLite3");
-	}
+// void register_new_user(int fd, struct client_info *client)
+// {
+// 	sqlite3 *db;
+// 	int ressy = sqlite3_open("users.db", &db);
 
-	char usertable[128] = {0};
+// 	if (ressy != SQLITE_OK)
+// 	{
+// 		printf("There was an error connecting to SQLLite3");
+// 	}
 
-	sprintf(usertable, "Please enter a password!,'%s'", *client->password);
-	ressy = sqlite3_exec(db, usertable, NULL, NULL, NULL);
+// 	char *usertable[128] = {0};
 
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an issue making your password");
-	}
+// 	sprintf(usertable, "Please enter a password!,'%s'", *client->password);
+// 	ressy = sqlite3_exec(db, usertable, NULL, NULL, NULL);
 
-	sqlite3_close(db);
-}
+// 	if (ressy != SQLITE_OK)
+// 	{
+// 		printf("There was an issue making your password");
+// 	}
 
-void register_new_user(int fd, struct client_info *client)
-{
-	int fd2, r;
-	fd_set readfds;
+// 	sqlite3_close(db);
+// }
 
-	// username
-	char *username = (char *)malloc(20 * sizeof(char));
+// void register_new_user(int fd, struct client_info *client)
+// {
+// 	int fd2, r;
+// 	fd_set readfds;
 
-	// ask user for input username
-	printf("Please enter a username to login or to register (less than 20 characters.)");
+// 	// username
+// 	char *username = (char *)malloc(20 * sizeof(char));
 
-	/* wait for a file descriptor */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(&client, &readfds);
+// 	// ask user for input username
+// 	printf("Please enter a username to login or to register (less than 20 characters.)");
 
-	// intialize fd2
-	fd2 = (STDIN_FILENO > &client) ? STDIN_FILENO : &client;
+// 	/* wait for a file descriptor */
+// 	FD_ZERO(&readfds);
+// 	FD_SET(STDIN_FILENO, &readfds);
+// 	FD_SET(&client, &readfds);
 
-	// handle the user input
-	if (FD_ISSET(STDIN_FILENO, &readfds))
-	{
-		handle_user_input();
-	}
-	if (FD_ISSET(&client, &readfds))
-	{
-		username = handle_socket_input(&client);
-	}
+// 	// intialize fd2
+// 	fd2 = (STDIN_FILENO > &client) ? STDIN_FILENO : &client;
 
-	// check if the username is already in the database
-	// prepare the database
-	int ressy;
-	ressy = query_database_for_username(username);
+// 	// handle the user input
+// 	if (FD_ISSET(STDIN_FILENO, &readfds))
+// 	{
+// 		handle_user_input();
+// 	}
+// 	if (FD_ISSET(&client, &readfds))
+// 	{
+// 		username = handle_socket_input(&client);
+// 	}
 
-	int ressy2;
+// 	// check if the username is already in the database
+// 	// prepare the database
+// 	int ressy;
+// 	ressy = query_database_for_username(username);
 
-	if (ressy)
-	{
-		ressy2 = ask_user_for_password(*username, &client);
-	}
-	else
-	{
-		ressy2 = set_new_user_password(*username, &client);
-	}
+// 	int ressy2;
 
-	return fd;
-}
+// 	if (ressy)
+// 	{
+// 		ressy2 = ask_user_for_password(*username, &client);
+// 	}
+// 	else
+// 	{
+// 		ressy2 = set_new_user_password(*username, &client);
+// 	}
 
-static int querey_database_for_username(char *username, struct client_info *client)
-{
-	// start up the database
-	sqlite3 *db;
-	sqlite3_stmt *usrnm = *username;
+// }
 
-	int new_q = sqlite3_open(STDIN_FILENO, &db);
+// static int querey_database_for_username(char *username, struct client_info *client)
+// {
+// 	// start up the database
+// 	sqlite3 *db;
+// 	sqlite3_stmt *usrnm = *username;
 
-	if (new_q != SQLITE_OK)
-	{
+// 	int new_q = sqlite3_open(STDIN_FILENO, &db);
 
-		fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
-		sqlite3_close(db);
-		return 1;
-	}
-	else
-	{
-		// prepare because you have to!
-		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);
+// 	if (new_q != SQLITE_OK)
+// 	{
 
-		if (new_q != SQLITE_OK)
-		{
-			fprintf(stderr, "Failed to prepare data");
-			sqlite3_close(db);
-			return 1;
-		}
-	}
+// 		fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
+// 		sqlite3_close(db);
+// 		return 1;
+// 	}
+// 	else
+// 	{
+// 		// prepare because you have to!
+// 		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);
 
-	// now step with the username
-	new_q = sqlite3_step(usrnm);
+// 		if (new_q != SQLITE_OK)
+// 		{
+// 			fprintf(stderr, "Failed to prepare data");
+// 			sqlite3_close(db);
+// 			return 1;
+// 		}
+// 	}
 
-	if (new_q == SQLITE_ROW)
-	{
-		printf("Welcome! Please enter your passcode to continue.");
+// 	// now step with the username
+// 	new_q = sqlite3_step(usrnm);
 
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
+// 	if (new_q == SQLITE_ROW)
+// 	{
+// 		printf("Welcome! Please enter your passcode to continue.");
 
-		return 0;
-	}
-	else
-	{
-		printf("Welcome new user! Please enter your passcode to complete your registration.");
+// 		sqlite3_finalize(usrnm);
+// 		sqlite3_close(db);
 
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
+// 		return 0;
+// 	}
+// 	else
+// 	{
+// 		printf("Welcome new user! Please enter your passcode to complete your registration.");
 
-		return 1;
-	}
-}
+// 		sqlite3_finalize(usrnm);
+// 		sqlite3_close(db);
 
-int ask_user_for_password(char *username, struct client_info *client)
-{
-	// username
-	char *password = (char *)malloc(20 * sizeof(password));
-	fd_set readfds;
-	int fd3;
+// 		return 1;
+// 	}
+// }
 
-	// ask user for input username
-	printf("Please enter your password");
+// int ask_user_for_password(char *username, struct client_info *client)
+// {
+// 	// username
+// 	char *password = (char *)malloc(20 * sizeof(password));
+// 	fd_set readfds;
+// 	int fd3;
 
-	/* wait for a file descriptor */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(&client, &readfds);
+// 	// ask user for input username
+// 	printf("Please enter your password");
 
-	// start up the database
-	sqlite3 *db;
-	sqlite3_stmt *usrnm = *username;
+// 	/* wait for a file descriptor */
+// 	FD_ZERO(&readfds);
+// 	FD_SET(STDIN_FILENO, &readfds);
+// 	FD_SET(&client, &readfds);
 
-	int new_q = sqlite3_open(STDIN_FILENO, &db);
+// 	// start up the database
+// 	sqlite3 *db;
+// 	sqlite3_stmt *usrnm = *username;
 
-	if (new_q != SQLITE_OK)
-	{
+// 	int new_q = sqlite3_open(STDIN_FILENO, &db);
 
-		fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
-		sqlite3_close(db);
-		return 1;
-	}
-	else
-	{
-		// prepare because you have to!
-		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);
+// 	if (new_q != SQLITE_OK)
+// 	{
 
-		if (new_q != SQLITE_OK)
-		{
-			fprintf(stderr, "Failed to prepare data");
-			sqlite3_close(db);
-			return 1;
-		}
-	}
+// 		fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
+// 		sqlite3_close(db);
+// 		return 1;
+// 	}
+// 	else
+// 	{
+// 		// prepare because you have to!
+// 		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);
 
-	// now step with the username
-	new_q = sqlite3_step(usrnm);
+// 		if (new_q != SQLITE_OK)
+// 		{
+// 			fprintf(stderr, "Failed to prepare data");
+// 			sqlite3_close(db);
+// 			return 1;
+// 		}
+// 	}
 
-	if (new_q == SQLITE_ROW)
-	{
-		printf("Welcome! Please enter your passcode to continue.");
+// 	// now step with the username
+// 	new_q = sqlite3_step(usrnm);
 
-		// intialize fd3
-		fd3 = (STDIN_FILENO > &client) ? STDIN_FILENO : &client;
+// 	if (new_q == SQLITE_ROW)
+// 	{
+// 		printf("Welcome! Please enter your passcode to continue.");
 
-		// handle the user input
-		if (FD_ISSET(STDIN_FILENO, &readfds))
-		{
-			handle_user_input();
-		}
-		if (FD_ISSET(&client, &readfds))
-		{
-			password = handle_socket_input(&client);
-		}
+// 		// intialize fd3
+// 		fd3 = (STDIN_FILENO > &client) ? STDIN_FILENO : &client;
 
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
-	}
+// 		// handle the user input
+// 		if (FD_ISSET(STDIN_FILENO, &readfds))
+// 		{
+// 			handle_user_input();
+// 		}
+// 		if (FD_ISSET(&client, &readfds))
+// 		{
+// 			password = handle_socket_input(&client);
+// 		}
 
-	// now step with the username
-	new_q = sqlite3_step(password);
+// 		sqlite3_finalize(usrnm);
+// 		sqlite3_close(db);
+// 	}
 
-	if (new_q == SQLITE_ROW)
-	{
-		printf("Welcome! You have successfully logged in.");
+// 	// now step with the username
+// 	new_q = sqlite3_step(password);
 
-		sqlite3_finalize(password);
-		sqlite3_close(db);
-		return 0;
-	}
-	else
-	{
-		printf("Incorrect password. Try again");
-		return 1;
-	}
-}
+// 	if (new_q == SQLITE_ROW)
+// 	{
+// 		printf("Welcome! You have successfully logged in.");
 
-static int set_new_user_password(char *username, struct client_info *client)
-{
-	// username
-	char *password = (char *)malloc(20 * sizeof(password));
-	fd_set readfds;
-	int fd3;
+// 		sqlite3_finalize(password);
+// 		sqlite3_close(db);
+// 		return 0;
+// 	}
+// 	else
+// 	{
+// 		printf("Incorrect password. Try again");
+// 		return 1;
+// 	}
+// }
 
-	// ask user for input username
-	printf("Please enter your password");
+// static int set_new_user_password(char *username, struct client_info *client)
+// {
+// 	// username
+// 	char *password = (char *)malloc(20 * sizeof(password));
+// 	fd_set readfds;
+// 	int fd3;
 
-	/* wait for a file descriptor */
-	FD_ZERO(&readfds);
-	FD_SET(STDIN_FILENO, &readfds);
-	FD_SET(&client, &readfds);
+// 	// ask user for input username
+// 	printf("Please enter your password");
 
-	// start up the database
-	sqlite3 *db;
-	sqlite3_stmt *usrnm = *username;
+// 	/* wait for a file descriptor */
+// 	FD_ZERO(&readfds);
+// 	FD_SET(STDIN_FILENO, &readfds);
+// 	FD_SET(&client, &readfds);
 
-	int new_q = sqlite3_open(STDIN_FILENO, &db);
+// 	// start up the database
+// 	sqlite3 *db;
+// 	sqlite3_stmt *usrnm = *username;
 
-	if (new_q != SQLITE_OK)
-	{
+// 	int new_q = sqlite3_open(STDIN_FILENO, &db);
 
-		fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
-		sqlite3_close(db);
-		return 1;
-	}
-	else
-	{
-		// prepare because you have to!
-		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);
+// 	if (new_q != SQLITE_OK)
+// 	{
 
-		if (new_q != SQLITE_OK)
-		{
-			fprintf(stderr, "Failed to prepare data");
-			sqlite3_close(db);
-			return 1;
-		}
-	}
+// 		fprintf(stderr, "Can not connect to the database. Are you sure it is working?\n");
+// 		sqlite3_close(db);
+// 		return 1;
+// 	}
+// 	else
+// 	{
+// 		// prepare because you have to!
+// 		new_q = sqlite3_prepare(db, "", -1, &usrnm, 0);
 
-	// now step with the username
-	new_q = sqlite3_step(usrnm);
+// 		if (new_q != SQLITE_OK)
+// 		{
+// 			fprintf(stderr, "Failed to prepare data");
+// 			sqlite3_close(db);
+// 			return 1;
+// 		}
+// 	}
 
-	if (new_q == SQLITE_ROW)
-	{
-		printf("Welcome! Please enter your passcode to continue.");
+// 	// now step with the username
+// 	new_q = sqlite3_step(usrnm);
 
-		// intialize fd3
-		fd3 = (STDIN_FILENO > &client) ? STDIN_FILENO : &client;
+// 	if (new_q == SQLITE_ROW)
+// 	{
+// 		printf("Welcome! Please enter your passcode to continue.");
 
-		// handle the user input
-		if (FD_ISSET(STDIN_FILENO, &readfds))
-		{
-			handle_user_input();
-		}
-		if (FD_ISSET(&client, &readfds))
-		{
-			password = handle_socket_input(&client);
-		}
+// 		// intialize fd3
+// 		fd3 = (STDIN_FILENO > &client) ? STDIN_FILENO : &client;
 
-		sqlite3_finalize(usrnm);
-		sqlite3_close(db);
-		return 0;
-	}
-	else
-	{
-		printf("Failed to assign you a password password. Try again");
-		return 1;
-	}
-}
+// 		// handle the user input
+// 		if (FD_ISSET(STDIN_FILENO, &readfds))
+// 		{
+// 			handle_user_input();
+// 		}
+// 		if (FD_ISSET(&client, &readfds))
+// 		{
+// 			password = handle_socket_input(&client);
+// 		}
+
+// 		sqlite3_finalize(usrnm);
+// 		sqlite3_close(db);
+// 		return 0;
+// 	}
+// 	else
+// 	{
+// 		printf("Failed to assign you a password password. Try again");
+// 		return 1;
+// 	}
+// }
