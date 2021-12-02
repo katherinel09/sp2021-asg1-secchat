@@ -2,17 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-struct client_info
-{
-	char *username;
-	char *password;
-};
-
-// void new_client(char usrnm, char *pwd)
-// {
-// 	username -> usrnm;
-// }
-
 /* Method to create a database */
 int create_database();
 
@@ -20,6 +9,7 @@ int create_database();
 int create_table();
 
 // Method to create a new user given a username and password
+void create_account_slot(const char *username, const char *password); // create_account_slot()
 
 // Method to authenticate an existing user given their username and password
 int authenticate_user(sqlite3 *db, char *username, char *password);

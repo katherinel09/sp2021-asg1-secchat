@@ -21,8 +21,11 @@
 /* Main method */
 int main()
 {
+	char *kat = "kat";
+	char *katkat = "katkat";
 	create_database();
 	create_table();
+	create_account_slot(kat, katkat);
 }
 
 /* Method to create a database */
@@ -47,13 +50,14 @@ int create_table() {
 
 
 	const char sql1[5000] = "CREATE TABLE PERSON("
-                      "ID INT PRIMARY KEY     NOT NULL, "
+                      
                       "USERNAME          TEXT    NOT NULL, "
                       "PASSWORD          TEXT     NOT NULL, "
                       "STATUS            TEXT     NOT NULL, "
                       "SIGNATURE         INT 	NOT NULL);";
 
 	// CONSTRAINT USERID PRIMARY KEY (USERNAME)
+	//"ID INT PRIMARY KEY     NOT NULL, "
 	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
 
 	sqlite3_close(db);
@@ -61,13 +65,63 @@ int create_table() {
 	return ressy;
 }
 
-// struct client_info
-// {
-// 	char *username;
-// 	char *password;
-// };
+// On registration, put in everything right away (name, password, status, certificates)
+// Have an sql file, with a bunch of creates that set up the properties of the table
+// Accounts table, message log table, sessions table (keep track of time)
+// create table if not exists, primary key, etc, look for documentation & list of fields (message table (sender, recipient, other important things))
+// name type name type (text is text, signature usignt)
+void create_account_slot(const char *username, const char *password)
+{
+	// const char *username, const char *password
+	sqlite3 *db;
+	int ressy = sqlite3_open("users.db", &db);
 
-// creates the database!
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3\n");
+		exit(-1);
+	}
+
+	//char usr[5000]; 
+    // if (usr == NULL) {
+    //     printf("There was an issue allocating memory\n");
+    //     exit(1);
+    // }
+
+    // Place data into memory and print.
+
+    // strcpy(usr, "INSERT INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('");
+    // strcat(usr, "AKAKA");
+	// strcat(usr, "', '");
+	// strcat(usr, "KATKAT");
+	// strcat(usr, "'COOLIO', '98765');");
+    //printf("User: %s\n", buff);
+
+    // Free memory and return.
+
+
+
+
+	const char usr[5000] = "INSERT INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('KATHERINELASONDE', 'PWDDDD', 'COOLIO', '98765');";
+
+	
+	// "
+	// 	(INSERT INTO PERSON 
+	// 		(ID, USERNAME, PASSWORD, STATUS, SIGNATURE) 
+	// 	VALUES
+	// 		('2023', 'KATHERINELASONDE', 'PWDDDD', 'COOLIO', '98765');");
+
+	ressy = sqlite3_exec(db, usr, NULL, 0, NULL);
+
+	//if (ressy != SQLITE_OK)
+	// {
+	// 	printf("There is an error creating your new user slot");
+	// 	exit(1);
+	// }
+	sqlite3_close(db);
+
+	//free(usr);
+}
 
 
 int authenticate_user(sqlite3 *db, char *username, char *password)
@@ -76,10 +130,7 @@ int authenticate_user(sqlite3 *db, char *username, char *password)
 	char user_table[500];
 	sqlite3_stmt *stmt;
 
-	//const char usrnm;
-	//const char pwd;
-
-	// to do, properly  allocate
+	// TODO properly  allocate
 	char *usrnm = username;
 	char *pwd = password;
 
@@ -208,36 +259,7 @@ int get_pwd(char *dbpath, char *name, char **pwd_p)
 	return 0;
 }
 
-// On registration, put in everything right away (name, password, status, certificates)
-// Have an sql file, with a bunch of creates that set up the properties of the table
-// Accounts table, message log table, sessions table (keep track of time)
-// create table if not exists, primary key, etc, look for documentation & list of fields (message table (sender, recipient, other important things))
-// name type name type (text is text, signature usignt)
-void create_account_slot()
-{
-	sqlite3 *db;
-	int ressy = sqlite3_open("users.db", &db);
-
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an issue connecting to SQLLite3");
-		exit(-1);
-	}
-
-	printf("Hi, please enter a user name and password less than 20 characters");
-
-	char new_user[500] = {0};
-
-	ressy = sqlite3_exec(db, new_user, NULL, NULL, NULL);
-	if (ressy != SQLITE_OK)
-	{
-		printf("There is an error creating your new user slot");
-		exit(1);
-	}
-	sqlite3_close(db);
-}
-
-void login(int fd, struct client_info *client)
+void login(int fd)
 {
 	sqlite3 *db;
 	int ressy = sqlite3_open("users.db", &db);
