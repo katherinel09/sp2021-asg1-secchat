@@ -23,9 +23,18 @@ int main()
 {
 	char *kat = "kat";
 	char *katkat = "katkat";
+	char *signature = "120900";
 	create_database();
 	create_table();
-	create_account_slot(kat, katkat);
+	create_account_slot(kat, katkat, signature);
+	create_account_slot(kat, signature, katkat);
+
+	// int res;
+	// int res2;
+	//res = authenticate_user(kat, katkat);
+	//res2 = authenticate_user(katkat, kat);
+	// printf("%d", res);
+	// printf("%d", res2);
 }
 
 /* Method to create a database */
@@ -51,7 +60,7 @@ int create_table() {
 
 	const char sql1[5000] = "CREATE TABLE PERSON("
                       
-                      "USERNAME          TEXT    NOT NULL, "
+                      "USERNAME TEXT    NOT NULL, "
                       "PASSWORD          TEXT     NOT NULL, "
                       "STATUS            TEXT     NOT NULL, "
                       "SIGNATURE         INT 	NOT NULL);";
@@ -65,12 +74,25 @@ int create_table() {
 	return ressy;
 }
 
+/* 
+ * is called by sqlite3_exec() to print db tables or elements.
+ * use sqlite3_get_table() as an alternative if you wish to retrieve 
+ * data, as opposed to just printing it.
+ */
+static int callback(void *NotUsed, int argc, char **argv, char **azColName){
+  int i;
+  for(i=0; i<argc; i++)
+    printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+  printf("\n");
+  return 0;
+}
+
 // On registration, put in everything right away (name, password, status, certificates)
 // Have an sql file, with a bunch of creates that set up the properties of the table
 // Accounts table, message log table, sessions table (keep track of time)
 // create table if not exists, primary key, etc, look for documentation & list of fields (message table (sender, recipient, other important things))
 // name type name type (text is text, signature usignt)
-void create_account_slot(const char *username, const char *password)
+void create_account_slot(const char *username, const char *password, const char *signature)
 {
 	// const char *username, const char *password
 	sqlite3 *db;
@@ -82,96 +104,110 @@ void create_account_slot(const char *username, const char *password)
 		exit(-1);
 	}
 
-	//char usr[5000]; 
-    // if (usr == NULL) {
-    //     printf("There was an issue allocating memory\n");
-    //     exit(1);
-    // }
-
-    // Place data into memory and print.
-
-    // strcpy(usr, "INSERT INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('");
-    // strcat(usr, "AKAKA");
-	// strcat(usr, "', '");
-	// strcat(usr, "KATKAT");
-	// strcat(usr, "'COOLIO', '98765');");
-    //printf("User: %s\n", buff);
-
-    // Free memory and return.
+	// // chcek if the username already exists in the databse
+	// char *apost = "'";
+	// char const *initial = "IF EXISTS (SELECT * FROM PERSON WHERE USERNAME='";
+	// char *ogquery = malloc(strlen(initial) + strlen(username));
+	// strcpy(ogquery, initial);
+	// strcat(ogquery, username);
+	// strcat(ogquery, apost);
 
 
-
-
-	const char usr[5000] = "INSERT INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('KATHERINELASONDE', 'PWDDDD', 'COOLIO', '98765');";
-
+	// ressy = sqlite3_exec(db, ogquery, callback, 0, NULL);
+	// printf("%d", ressy);
 	
-	// "
-	// 	(INSERT INTO PERSON 
-	// 		(ID, USERNAME, PASSWORD, STATUS, SIGNATURE) 
-	// 	VALUES
-	// 		('2023', 'KATHERINELASONDE', 'PWDDDD', 'COOLIO', '98765');");
-
-	ressy = sqlite3_exec(db, usr, NULL, 0, NULL);
-
-	//if (ressy != SQLITE_OK)
+	// if (ressy != SQLITE_OK)
 	// {
-	// 	printf("There is an error creating your new user slot");
-	// 	exit(1);
+	// 	printf("The user already exists\n");
+	// 	return;
 	// }
-	sqlite3_close(db);
 
-	//free(usr);
+	/*
+	* IF NOT EXISTS ( SELECT 1 FROM Users WHERE FirstName = 'John' AND LastName = 'Smith' )
+BEGIN
+    INSERT INTO Users (FirstName, LastName) VALUES ('John', 'Smith')
+END
+	*/
+
+
+	char const *exist = "IF NOT EXISTS ( SELECT 1 WHERE USERNAME='kat') BEGIN "; // ) ( SELECT * PERSON WHERE USERNAME='";
+	// char const *end_of_exist = "') BEGIN SELECT 1 END ELSE BEGIN ";
+	//Otherwise, add them to the database
+	char const *initial2 = "INSERT INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
+	char const *rest = "', 'ONLINE', '";
+	char const *formatting = "', '";
+	char const *formatting2 = "') END;";
+	// END
+
+	char *full_command;
+	full_command = malloc(500 + strlen(initial2)+ strlen(username) + strlen(username) + strlen(password) + strlen(rest)+1+4); // strlen(exist) + strlen(end_of_exist)
+	strcpy(full_command, exist);
+	//strcat(full_command, username);
+	//strcat(full_command, end_of_exist);
+	strcat(full_command, initial2);
+	strcat(full_command, username);
+	strcat(full_command, formatting); 
+	strcat(full_command, password);
+	strcat(full_command, rest);
+	strcat(full_command, signature);
+	strcat(full_command, formatting2); 
+
+	printf("%s", full_command);
+	ressy = sqlite3_exec(db, full_command, callback, 0, NULL);
+	sqlite3_close(db);
+	//free(ogquery);
+	free(full_command);
 }
 
 
-int authenticate_user(sqlite3 *db, char *username, char *password)
+// Determine if a user exists
+int authenticate_user(char *username, char *password)
 {
-	int found, ressy;
+	sqlite3 *db;
+	int ressy = sqlite3_open("users.db", &db);
+
+	int found;
 	char user_table[500];
 	sqlite3_stmt *stmt;
 
-	// TODO properly  allocate
-	char *usrnm = username;
-	char *pwd = password;
-
 	//int bad_char_index = 0;
-	if ((strchr(usrnm, '\'') != NULL) || (strchr(pwd, '\'') != NULL))
+	if ((strchr(username, '\'') != NULL) || (strchr(password, '\'') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include single quote");
 		exit(-1);
 	}
-	else if ((strchr(usrnm, '<') != NULL) || (strchr(pwd, '<') != NULL))
+	else if ((strchr(username, '<') != NULL) || (strchr(password, '<') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include < or >");
 		exit(-1);
 	}
-	else if ((strchr(usrnm, '>') != NULL) || (strchr(pwd, '>') != NULL))
+	else if ((strchr(username, '>') != NULL) || (strchr(password, '>') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include < or >");
 		exit(-1);
 	}
-	else if ((strchr(usrnm, '\"') != NULL) || (strchr(pwd, '\"') != NULL))
+	else if ((strchr(username, '\"') != NULL) || (strchr(password, '\"') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include &");
 		exit(-1);
 	}
-	else if ((strchr(usrnm, '\\') != NULL) || (strchr(pwd, '\\') != NULL))
+	else if ((strchr(username, '\\') != NULL) || (strchr(password, '\\') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include \\");
 		exit(-1);
 	}
-	else if ((strchr(usrnm, '%') != NULL) || (strchr(pwd, '%') != NULL))
+	else if ((strchr(username, '%') != NULL) || (strchr(password, '%') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include the percent symbol");
 		exit(-1);
 	}
-	else if ((strchr(usrnm, '#') != NULL) || (strchr(pwd, '#') != NULL))
+	else if ((strchr(username, '#') != NULL) || (strchr(password, '#') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include #");
 		exit(-1);
 	}
 
-	else if ((strchr(usrnm, '?') != NULL) || (strchr(pwd, '?') != NULL))
+	else if ((strchr(username, '?') != NULL) || (strchr(password, '?') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include ?");
 		exit(-1);
@@ -184,18 +220,16 @@ int authenticate_user(sqlite3 *db, char *username, char *password)
 	}
 
 	/* build query */
-	sprintf(user_table, "SELECT userid "
-						"FROM user WHERE name='%s' "
-						"AND pwd='%s'",
-			username, password);
+	sprintf(user_table, "IF EXISTS (SELECT * FROM USERNAME WHERE USERNAME='%s' "
+						"AND pwd='%s')", username, password);
 
 	ressy = sqlite3_prepare_v2(db, user_table, -1, &stmt, NULL);
 
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an issue connecting to SQLLite3");
-		exit(-1);
-	}
+	// if (ressy != SQLITE_OK)
+	// {
+	// 	printf("There was an issue connecting to SQLLite3");
+	// 	exit(-1);
+	// }
 
 	/* execute query */
 	switch (sqlite3_step(stmt))
@@ -210,24 +244,20 @@ int authenticate_user(sqlite3 *db, char *username, char *password)
 
 	ressy = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
 
-	ressy = sqlite3_bind_text(stmt, 2, pwd, -1, SQLITE_STATIC);
+	printf("%d",ressy);
+	printf("i was here");
+
+	//ressy = sqlite3_bind_text(stmt, 2, pwd, -1, SQLITE_STATIC);
 
 	sqlite3_finalize(stmt);
 
-	fprintf(stderr, "db error: %s\n",
-			sqlite3_errmsg(db));
-	if (stmt)
-		sqlite3_finalize(stmt);
-	return -1;
+	// fprintf(stderr, "db error: %s\n",
+	// 		sqlite3_errmsg(db));
+	// if (stmt)
+	// 	sqlite3_finalize(stmt);
+	// return -1;
+	return ressy;
 }
-
-//int get_pwd_with_db(sqlite3 *db, const char *name, char **pwd_p)
-//{
-	//sqlite3_stmt *stmt;
-	//*pwd_p = NULL;
-	//*pwd_p = strdup((char *)sqlite3_column_text(stmt, 0));
-	//return 0;
-//}
 
 
 int get_pwd(char *dbpath, char *name, char **pwd_p)
@@ -303,9 +333,6 @@ int login_callback_function(int column_count, char **column_value, char **column
 	if (column_value[0] != NULL && column_value[1] != NULL)
 	{
 		char user_table[128] = {0};
-		// char user_table2[128] = {0};
-		// strcpy(user_table2, column_value);
-
 		ressy = sqlite3_exec(db, user_table, NULL, NULL, NULL);
 	}
 
