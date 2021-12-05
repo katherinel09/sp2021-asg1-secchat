@@ -29,19 +29,15 @@ int main()
 	create_account_slot(kat, katkat, signature);
 	create_account_slot(kat, signature, katkat);
 
-	// int res;
-	// int res2;
-	//res = authenticate_user(kat, katkat);
-	//res2 = authenticate_user(katkat, kat);
-	// printf("%d", res);
-	// printf("%d", res2);
+	int res;
+	res = authenticate_user(kat, katkat);
+	printf("%d", res);
 }
 
 /* Method to create a database */
 int create_database() {
 	sqlite3 *db;
 	int ressy = 0;
-	//sqlite3_stmt *statement;
 
 	// Create the data base
 	ressy = sqlite3_open(DATABASE, &db);
@@ -66,12 +62,8 @@ int create_table() {
                       "SIGNATURE        INT 	NOT NULL, "
 					  "PRIMARY KEY (USERNAME) );";
 
-	// CONSTRAINT USERID PRIMARY KEY (USERNAME)
-	//"ID INT PRIMARY KEY     NOT NULL, "
 	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
-
 	sqlite3_close(db);
-
 	return ressy;
 }
 
@@ -105,46 +97,14 @@ void create_account_slot(const char *username, const char *password, const char 
 		exit(-1);
 	}
 
-	// // chcek if the username already exists in the databse
-	// char *apost = "'";
-	// char const *initial = "IF EXISTS (SELECT * FROM PERSON WHERE USERNAME='";
-	// char *ogquery = malloc(strlen(initial) + strlen(username));
-	// strcpy(ogquery, initial);
-	// strcat(ogquery, username);
-	// strcat(ogquery, apost);
-
-
-	// ressy = sqlite3_exec(db, ogquery, callback, 0, NULL);
-	// printf("%d", ressy);
-	
-	// if (ressy != SQLITE_OK)
-	// {
-	// 	printf("The user already exists\n");
-	// 	return;
-	// }
-
-	/*
-	* IF NOT EXISTS ( SELECT 1 FROM Users WHERE FirstName = 'John' AND LastName = 'Smith' )
-BEGIN
-    INSERT INTO Users (FirstName, LastName) VALUES ('John', 'Smith')
-END
-	*/
-
-
-	//char const *exist = "IF NOT EXISTS ( SELECT 1 WHERE USERNAME='kat') BEGIN "; // ) ( SELECT * PERSON WHERE USERNAME='";
-	// char const *end_of_exist = "') BEGIN SELECT 1 END ELSE BEGIN ";
 	//Otherwise, add them to the database
 	char const *initial2 = "INSERT OR IGNORE INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
 	char const *rest = "', 'ONLINE', '";
 	char const *formatting = "', '";
 	char const *formatting2 = "');";
-	// END
 
 	char *full_command;
-	full_command = malloc(500 + strlen(initial2)+ strlen(username) + strlen(username) + strlen(password) + strlen(rest)+1+4); // strlen(exist) + strlen(end_of_exist)
-	//strcpy(full_command, exist);
-	//strcat(full_command, username);
-	//strcat(full_command, end_of_exist);
+	full_command = malloc(500 + strlen(initial2)+ strlen(username) + strlen(username) + strlen(password) + strlen(rest)+1+4); 
 	strcat(full_command, initial2);
 	strcat(full_command, username);
 	strcat(full_command, formatting); 
@@ -153,10 +113,8 @@ END
 	strcat(full_command, signature);
 	strcat(full_command, formatting2); 
 
-	printf("%s", full_command);
 	ressy = sqlite3_exec(db, full_command, callback, 0, NULL);
 	sqlite3_close(db);
-	//free(ogquery);
 	free(full_command);
 }
 
@@ -167,7 +125,6 @@ int authenticate_user(char *username, char *password)
 	sqlite3 *db;
 	int ressy = sqlite3_open("users.db", &db);
 
-	int found;
 	char user_table[500];
 	sqlite3_stmt *stmt;
 
@@ -226,37 +183,24 @@ int authenticate_user(char *username, char *password)
 
 	ressy = sqlite3_prepare_v2(db, user_table, -1, &stmt, NULL);
 
-	// if (ressy != SQLITE_OK)
-	// {
-	// 	printf("There was an issue connecting to SQLLite3");
-	// 	exit(-1);
-	// }
-
-	/* execute query */
-	switch (sqlite3_step(stmt))
-	{
-	case SQLITE_DONE:
-		found = 0;
-		break;
-	case SQLITE_ROW:
-		found = 1;
-		break;
-	}
+	printf("%d",ressy);
+	printf("\nfirst res\n");
 
 	ressy = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
 
 	printf("%d",ressy);
-	printf("i was here");
+	printf("\ni was here\n");
 
-	//ressy = sqlite3_bind_text(stmt, 2, pwd, -1, SQLITE_STATIC);
+	ressy = sqlite3_bind_text(stmt, 2, password, -1, SQLITE_STATIC);
+
+	printf("%d",ressy);
+	printf("\nlast res\n");
 
 	sqlite3_finalize(stmt);
 
 	// fprintf(stderr, "db error: %s\n",
 	// 		sqlite3_errmsg(db));
-	// if (stmt)
-	// 	sqlite3_finalize(stmt);
-	// return -1;
+	
 	return ressy;
 }
 
@@ -300,13 +244,6 @@ void login(int fd)
 		printf("There was an error connecting to SQLLite3");
 		exit(-1);
 	}
-
-	//char usertable[500] = {0};
-
-	//char *usrnm = client->username;
-
-	// db.username = username_from_db;
-	// db.password = password_from_db;
 
 	ressy = sqlite3_open("users.db", &db);
 
