@@ -60,10 +60,11 @@ int create_table() {
 
 	const char sql1[5000] = "CREATE TABLE PERSON("
                       
-                      "USERNAME TEXT    NOT NULL, "
-                      "PASSWORD          TEXT     NOT NULL, "
-                      "STATUS            TEXT     NOT NULL, "
-                      "SIGNATURE         INT 	NOT NULL);";
+                      "USERNAME 		TEXT	NOT NULL, "
+                      "PASSWORD			TEXT    NOT NULL, "
+                      "STATUS           TEXT    NOT NULL, "
+                      "SIGNATURE        INT 	NOT NULL, "
+					  "PRIMARY KEY (USERNAME) );";
 
 	// CONSTRAINT USERID PRIMARY KEY (USERNAME)
 	//"ID INT PRIMARY KEY     NOT NULL, "
@@ -130,18 +131,18 @@ END
 	*/
 
 
-	char const *exist = "IF NOT EXISTS ( SELECT 1 WHERE USERNAME='kat') BEGIN "; // ) ( SELECT * PERSON WHERE USERNAME='";
+	//char const *exist = "IF NOT EXISTS ( SELECT 1 WHERE USERNAME='kat') BEGIN "; // ) ( SELECT * PERSON WHERE USERNAME='";
 	// char const *end_of_exist = "') BEGIN SELECT 1 END ELSE BEGIN ";
 	//Otherwise, add them to the database
-	char const *initial2 = "INSERT INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
+	char const *initial2 = "INSERT OR IGNORE INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
 	char const *rest = "', 'ONLINE', '";
 	char const *formatting = "', '";
-	char const *formatting2 = "') END;";
+	char const *formatting2 = "');";
 	// END
 
 	char *full_command;
 	full_command = malloc(500 + strlen(initial2)+ strlen(username) + strlen(username) + strlen(password) + strlen(rest)+1+4); // strlen(exist) + strlen(end_of_exist)
-	strcpy(full_command, exist);
+	//strcpy(full_command, exist);
 	//strcat(full_command, username);
 	//strcat(full_command, end_of_exist);
 	strcat(full_command, initial2);
