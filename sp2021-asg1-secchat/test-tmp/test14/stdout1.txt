@@ -1,0 +1,2 @@
+logincommand
+Bericht: pubmsg2

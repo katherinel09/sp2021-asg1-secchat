@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <stdbool.h>
-#include <time.h>
 
 //#include "string.h"
 #include "api.h"
@@ -28,12 +27,7 @@ int api_recv(struct api_state *state, struct api_msg *msg)
 
 	msg->message = calloc(READ_SIZE, 1);
 	int length = recv(state->fd, msg->message, READ_SIZE, 0);
-
-  time_t current_time;
-  current_time = time(NULL); 
-
-	printf("Time: %s\n", asctime( localtime(&current_time)));
-  printf("Bericht: %s\n", msg->message);
+	printf("%s\n", msg->message);
 
 	if(length == -1 || length == 0) { return length; }
 	else { return 1; }

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "api.h"
 #include "ui.h"
@@ -12,12 +13,33 @@
 
 #define TRUE 1
 #define FALSE 0
+#define TEKEN_LIMIET 256
 
 //int ontbeest = TRUE;
 int ontbeest = FALSE;
 #define log(x) if(ontbeest) { printf(x); printf("\n"); }
 
-struct client_state {
+char* huidigeTijd()
+{
+	time_t groveTijd;
+	struct tm *tijdInformatie;
+	time(&groveTijd);
+	tijdInformatie = localtime(&groveTijd);
+	
+	String s, tijd;
+	nieuweString(&s, 25);
+	nieuweString(&tijd, 9);
+	char* momentOpname = asctime(tijdInformatie);
+	
+	for(int i = 0; i < 24; i++) { druk(&s, momentOpname[i]); }
+	verkrijgWoord(&s, &tijd, 3);
+	verwijderString(&s);
+	
+	return verkrijgString(&tijd);
+}
+
+struct client_state
+{
 	struct api_state api;
 	int eof;
 	struct ui_state ui;
@@ -28,8 +50,8 @@ struct client_state {
  * @brief Connects to @hostname on port @port and returns the
  *        connection fd. Fails with -1.
  */
-static int client_connect(struct client_state *state,
-	const char *hostname, uint16_t port) {
+static int client_connect(struct client_state *state, const char *hostname, uint16_t port)
+{
 	int fd;
 	struct sockaddr_in addr;
 
@@ -64,18 +86,25 @@ static int client_process_command(struct client_state *state)
 	* set state->eof if there is no more input (read returns zero)
 	*/
 	
-	String invoer, woord_0, woord_1, woord_2;
+	int blokAantal = 1;
+	String invoer, woord_0, woord_1, woord_2, blokjes;
 	nieuweString(&invoer, 20); 		// Verstel de begingrootte naar twintig.
 	nieuweString(&woord_0, 20); 	// Verstel de begingrootte naar twintig.
 	nieuweString(&woord_1, 20); 	// Verstel de begingrootte naar twintig.
 	nieuweString(&woord_2, 20); 	// Verstel de begingrootte naar twintig.
+	nieuweString(&blokjes, 20); 	// Verstel de begingrootte naar twintig.
 	verkrijgInvoer(&invoer); 		// Leest de invoer van de gebruiker
 	
-	if(invoer.grootte > 256)
+	if(invoer.grootte > TEKEN_LIMIET)
 	{
+		for(int i = 0;;i++)
+			{ if(invoer.grootte - i*TEKEN_LIMIET <= 0) { blokAantal = i; break; } }
+		
 		printf("\nOpmerking: hou er rekening mee dat als jouw bericht langer is dan 256 tekens, dat alleen het laatste gedeelte van jouw bericht aankomt bij de andere gebruikers.\n\n");
 	}
 	
+	int woordenteller = woordenTeller(&invoer);
+	//printf("Aantal woorden: %i\n", woordenteller);
 	verkrijgWoord(&invoer, &woord_0, 0); // Achterhaal het eerste woord van de zin.
 	verkrijgWoord(&invoer, &woord_1, 1); // Achterhaal het tweede woord van de zin.
 	verkrijgWoord(&invoer, &woord_2, 2); // Achterhaal het derde woord van de zin.
@@ -88,22 +117,67 @@ static int client_process_command(struct client_state *state)
 	else { state->eof = 0; }
 	
 	if(strcmp(verkrijgString(&woord_0), "/exit") == 0)
-		{ printf("exitcommand\n"); }
-	else if(strcmp(verkrijgString(&woord_0), "/login") == 0)
-		{ printf("logincommand\n"); }
-	else if(strcmp(verkrijgString(&woord_0), "/register") == 0)
-		{ printf("registercommand\n"); }
-	else if(strcmp(verkrijgString(&woord_0), "/users") == 0)
-		{ printf("usercommand\n"); }
+		{ exit(0); }
+	else if(strcmp(verkrijgString(&woord_0), "/login") == 0 || strcmp(verkrijgString(&woord_0), "/aanmelden") == 0)
+	{
+		if(woordenteller < 3)
+		{
+			printf("Gebruik: /aanmelden [gebruikersnaam] [wachtwoord]\nvb: /aanmelden willem test123\n");
+		}
+		else if(woordenteller >= 3 && woord_1.bladwijzer >= 3 && woord_2.bladwijzer >= 6)
+		{
+			send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
+		}
+		else
+		{
+			printf("Fout: een gebruikersnaam heeft minimaal drie tekens; een wachtwoord minimaal zes.\n");
+		}
+	}
+	else if(strcmp(verkrijgString(&woord_0), "/register") == 0 || strcmp(verkrijgString(&woord_0), "/registreer") == 0 || strcmp(verkrijgString(&woord_0), "/inschrijven") == 0)
+	{
+		if(woordenteller < 3)
+		{
+			printf("Gebruik: /inschrijven [gebruikersnaam] [wachtwoord]\nvb: /inschrijven willem test123\n");
+		}
+		else if(woord_1.bladwijzer < 3)
+		{
+			printf("Fout: jouw gebruikersnaam moet minimaal drie tekens lang zijn.\n");
+		}
+		else if(woord_2.bladwijzer < 6)
+		{
+			printf("Fout: jouw wachtwoord moet minimaal zes tekens lang zijn.\n");
+		}
+		else 
+		{ send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0); }
+	}
+	else if(strcmp(verkrijgString(&woord_0), "/users") == 0 || strcmp(verkrijgString(&woord_0), "/gebruikers") == 0)
+	{
+		printf("gebruikerscommando\n");
+	}
 	else if(verkrijgString(&woord_0)[0] == '@')
-		{ printf("privatemsg\n"); }
-	else { send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0); }
+		{ printf("privébericht\n"); }
+	else
+	{
+		if(blokAantal > 1)
+		{
+			for(int i = 0; i < blokAantal; i++)
+			{
+				sleep(1);
+				geefBlok(&invoer, &blokjes, TEKEN_LIMIET, i);
+				printf(verkrijgString(&blokjes));
+				if(blokjes.grootte > TEKEN_LIMIET) { printf("FOUT!!!"); exit(1); }
+				send(state->api.fd, verkrijgString(&blokjes), blokjes.grootte, 0);
+			}
+		}
+		else { send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0); }
+	}
 	
 	/* Geheugenadressen opschonen */
 	verwijderString(&invoer);
 	verwijderString(&woord_0);
 	verwijderString(&woord_1);
 	verwijderString(&woord_2);
+	verwijderString(&blokjes);
 	return 0;
 	
 	/* Opmerking: persoonlijk vind ik het makkelijker om mijn eigen functies en variabelen Nederlandse namen te geven, zodat het makkelijker voor mij is om te onderscheiden tussen wat ik zelf heb geschreven en wat door anderen is geschreven.*/
@@ -114,10 +188,10 @@ static int client_process_command(struct client_state *state)
  * @param state   Initialized client state
  * @param msg     Message to handle
  */
-static int execute_request(
-	struct client_state *state,
-	const struct api_msg *msg) {
-	
+ /* Wordt altijd door handle_server_request() aangeroepen. */
+static int execute_request(struct client_state *state, const struct api_msg *msg)
+{
+	log("CLIENT: static int execute_request(struct client_state *state, const struct api_msg *msg)");
 	/* TODO handle request and reply to client */
 	
 	return 0;
@@ -127,23 +201,26 @@ static int execute_request(
  * @brief         Reads an incoming request from the server and handles it.
  * @param state   Initialized client state
  */
-static int handle_server_request(struct client_state *state) {
+ /* Wordt altijd aangeroepen nadat de klant een bericht naar de server heeft verstuurd*/
+static int handle_server_request(struct client_state *state)
+{
 	struct api_msg msg;
 	int r, success = 1;
-
+	log("CLIENT: static int handle_server_request(struct client_state *state)");
 	assert(state);
 
 	/* wait for incoming request, set eof if there are no more requests */
 	r = api_recv(&state->api, &msg);
-	if (r < 0) return -1;
-	if (r == 0) {
-		state->eof = 1;
-		return 0;
-		}
-
+	if (r < 0) 	{ return -1; }
+	if (r == 0) { state->eof = 1; return 0; }
+	
+	//printf("Verzoek: %s\n", msg.message);
+	
 	/* execute request */
-	if (execute_request(state, &msg) != 0) {
-	success = 0;
+	if (execute_request(state, &msg) != 0)
+	{
+		log("if (execute_request(state, &msg) != 0)");
+		success = 0;
 	}
 
 	/* clean up state associated with the message */
@@ -156,12 +233,13 @@ static int handle_server_request(struct client_state *state) {
  * @brief register for multiple IO event, process one
  *        and return. Returns 0 if the event was processed
  *        successfully and -1 otherwise.
- *
  */
-static int handle_incoming(struct client_state *state) {
+/* Deze functie wordt na elk commando aangeroepen */
+static int handle_incoming(struct client_state *state)
+{
 	int fdmax, r;
 	fd_set readfds;
-
+	log("CLIENT: static int handle_incoming(struct client_state *state)");
 	assert(state);
 
 	/* TODO if we have work queued up, this might be a good time to do it */
@@ -183,15 +261,13 @@ static int handle_incoming(struct client_state *state) {
 		}
 
 	/* handle ready file descriptors */
-	if (FD_ISSET(STDIN_FILENO, &readfds)) {
-	return client_process_command(state);
-	}
+	if (FD_ISSET(STDIN_FILENO, &readfds))
+		{ return client_process_command(state); }
 	/* TODO once you implement encryption you may need to call ssl_has_data
-   * here due to buffering (see ssl-nonblock example)
-   */
-	if (FD_ISSET(state->api.fd, &readfds)) {
-	return handle_server_request(state);
-	}
+	 * here due to buffering (see ssl-nonblock example)
+	 */
+	if (FD_ISSET(state->api.fd, &readfds))
+		{ return handle_server_request(state); }
 	return 0;
 }
 
@@ -224,7 +300,8 @@ static void usage(void) {
 	exit(1);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	setvbuf(stdout, NULL, _IONBF, 0);
 	int fd;
 	uint16_t port;
@@ -239,7 +316,7 @@ int main(int argc, char **argv) {
 
 	/* connect to server */
 	fd = client_connect(&state, argv[1], port);
-	if (fd < 0) return 1;
+	if (fd < 0) { return 1; }
 
 	/* initialize API */
 	api_state_init(&state.api, fd);
@@ -256,3 +333,14 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
+
+/*
+ * 
+ * ############## Werkwijze ############## 
+ * 
+ * 1. Na elke client_process_command() wordt handle_incoming() aangeroepen, ongeacht het commando.
+ * 2. Na berichtversturing wordt handle_server_request() aangeroepen.
+ * 3. Vanuit hier wordt execute_request() altijd aangeroepen.
+ * 4. Dan opnieuw handle_incoming()
+ * 
+ * */
