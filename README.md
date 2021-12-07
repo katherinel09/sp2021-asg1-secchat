@@ -7,7 +7,12 @@ SP2021-ASF1-SECCHAT is a standalone program that consists of a '*chat server*' w
 The state of this README currently reflects the functionality as November 16 for the first deadline of assignment one. The goal of this deadline is to build a secure chat application between a client and a server. Specifically, we implemented the functionality of sending messages, receiving messages, parsing commands, and showing messages between two servers. 
 
 # To compile: 
-Run '*make*' or '*make all*' in the root directory. 
+Run '*make*' or '*make all*' in the root directory. Linker tags include -lcrypto -lssl -lsqlite3. 
+
+We recommend compiled with the following tags when looking for errors:
+gcc -fporfile-arcs -ftest-coverage -o -parseint parseint.c
+gcc -fsanitize=address -o buffer-overflow buffer-overflow.c
+gcc -fsanitize=undefined -o buffer-overflow buffer-overflow.c valgrind ./myprogram param1 param2 afl-gcc -o hello hello.c (afl-fuzz -i in -o out ./hello) (sudo apt install afl)
 
 ### Methods in server.c
 ```c=
@@ -232,3 +237,6 @@ Specific test attacks we tested:
 - Attackers using the client or server programs to achieve privilege escalation on the systems they are running on
 - Attackers attempting to leak or corrupt data in the client or server programs
 - Attackers crashing the client or server programs.
+
+In the final hours of this assignment, we double that we intiailized memory correctly and that pointers were set to null after they were deallocated. (using valgrind and other methods). We checked for buffer overflows through arthimatic and chose specific types based on permissible inputs. We often check for incorrect inputs and exit( ) if so. We tested many boundary cases, including an attempted login with no users, an attempted login when there are already max users, repeated users names, and extreme/out of bounds/incorrect type inputs. 
+
