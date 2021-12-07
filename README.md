@@ -4,12 +4,12 @@
 ### Program Description
 SP2021-ASF1-SECCHAT is a standalone program that consists of a '*chat server*' which maintains chat states to allow for a conversation to take place, as well as a '*chat client*' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include (*but won't be limited to*) are users sending and receiving private and public messages. 
 
-The state of this README currently reflects the functionality as November 16 for the first deadline of assignment one. The goal of this deadline is to build a secure chat application between a client and a server. Specifically, we implemented the functionality of sending messages, receiving messages, parsing commands, and showing messages between two servers. 
+The state of this README currently reflects the functionality as November 16 for the first deadline of assignment one. The goal of this deadline is to build a secure chat application between a client and a server. Specifically, we implemented the functionality of sending messages, receiving messages, parsing commands, and showing messages between two users. 
 
 # To compile: 
 Run '*make*' or '*make all*' in the root directory. Linker tags include -lcrypto -lssl -lsqlite3. 
 
-We recommend compiled with the following tags when looking for errors:
+We recommend compiling with the following tags when looking for errors:
 gcc -fporfile-arcs -ftest-coverage -o -parseint parseint.c
 gcc -fsanitize=address -o buffer-overflow buffer-overflow.c
 gcc -fsanitize=undefined -o buffer-overflow buffer-overflow.c valgrind ./myprogram param1 param2 afl-gcc -o hello hello.c (afl-fuzz -i in -o out ./hello) (sudo apt install afl)
@@ -102,7 +102,7 @@ First, we disable buffering of the output to ensure that hackers are unable to m
 
 Once the inputs are parsed, we initialise the client state. To do this, we clear the previous memory in the space we wish to store the reference, and then we create a new user interface reference.  Once the client is intialised, the client is connected to the server. Here, we check that the state and the hostname are the anticipated values and a hacker is not attempting to input malicious parameters. Then, we look up the hostname, create the TCP socket, and connect to the server. If any of the previous steps fail, we return an exit code of **-1**. 
 
-Once the client has successfully connected, we initialised the associated APIs such that we are referencing the messages and the states of the API. Finally, the client is able to send and receive messages from the server as long as both parties are working. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
+Once the client has successfully connected, we initialise the associated APIs such that we are referencing the messages and the states of the API. Finally, the client is able to send and receive messages from the server as long as both parties are working. When the client exits the server properly, allocated memory is freed and the program returns an exit code of 0. 
 
 ### How the server and the client communicate
 Currently, the server is first set up, then clients are able to join the server.  
@@ -111,26 +111,33 @@ Currently, the server is first set up, then clients are able to join the server.
 
 Client:
 
-- The client is able to register a new account through a username and password. The max length for usernames and passwords is 20 characters.
-- The client can only login to an account if he/she uses the associated password
-- The client can exit by logging out from the server. This also terminates the client program
-- When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
-- The client can send public messages to all users and private messages to a specified users
-- Messages are displayed to the client with a timestamp, author, and recipient (for private messages)
-- Duplicate usernames are not allowed on the server
-- The maximum length for messages is 500 characters on the server
-- Can provide a list of logged in users at a client's request
+- The client is able to register a new account through a username and password. User names have a minium of three characters and passwords a minimum of six characters, to enforce users to opt for a password that is hard to get by a brute force attack. There is no set maximum for either the password of username. The only limitation is that both the username and password must fit in one message (_whose maximum is 256 characters_). It is possible to have a 200 character username and a 30 character password.
+- The client can only login to an account if he/she uses the associated password.
++ The client can exit by logging out from the server. This also terminates the client program.
+	A logout command is not yet implemented. You log out by closing the chat client.
++ When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
+	This one is not yet implemented, but we plan to.
++ The client can send public messages to all users and private messages to a specified users
+	As of now, only the public messages are supported.
+- Messages are displayed to the client with a timestamp and author
++ Duplicate usernames are not allowed on the server
+	Our server does not check for this, yet.
++ The maximum length for messages is 500 characters on the server
+	256 characters, as of now, but we plan to expand this to 512, since 256 characters is annoying when sending larger messages.
++ Can provide a list of logged in users at a client's request
+	This one is not yet implemented.
 - Messages are displayed to the intended client(s) immediately
 
 Server:
 
 - The server program supports all the functionality needed to provide the aforementioned client features
-- No more than 20 simultaneous connections are allowed
+- No more than 16 simultaneous connections are allowed
 - The server program takes care of all necessary storage for security
 
 #### Nonfunctional program requirements
 
-In addition to several functional requirements, our program also meets a set of nonfunctional requirements.  
+In addition to several functional requirements, our program also meets a set of nonfunctional requirements. 
+	+ This is our plan. This is not yet implemented. We could deviate from this plan, given that there are more ways to secure a connection.
 
 In particular: 
 1. Permanent state information is stored on a server-side database named chat.db, which can be retrieved by the client as needed. 
@@ -229,5 +236,4 @@ Specific test attacks we tested:
 - Attackers attempting to leak or corrupt data in the client or server programs
 - Attackers crashing the client or server programs.
 
-In the final hours of this assignment, we double that we intiailized memory correctly and that pointers were set to null after they were deallocated. (using valgrind and other methods). We checked for buffer overflows through arthimatic and chose specific types based on permissible inputs. We often check for incorrect inputs and exit( ) if so. We tested many boundary cases, including an attempted login with no users, an attempted login when there are already max users, repeated users names, and extreme/out of bounds/incorrect type inputs. 
-
+In the final hours of this assignment, we made it such that every user can register only one account, to prevent abuse in the form of making a million accounts to tire out the server. We checked for buffer overflows through arithmetics and chose specific types based on permissible inputs. We often check for incorrect inputs and exit( ) if so. We tested many boundary cases, including an attempted login with no users, an attempted login when there are already max users, repeated users names, and extreme/out of bounds/incorrect type inputs.
