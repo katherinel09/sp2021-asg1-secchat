@@ -1,5 +1,6 @@
 # Security and Privacy README.md 
 # sp2021-asg1-seccaht
+
 ### Program Description
 SP2021-ASF1-SECCHAT is a standalone program that consists of a '*chat server*' which maintains chat states to allow for a conversation to take place, as well as a '*chat client*' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include (*but won't be limited to*) are users sending and receiving private and public messages. 
 
@@ -25,6 +26,23 @@ static int handle_incoming(struct server_state *state)
 int main(int argc, char **argv)
 ```
 
+### Data structures in server.c
+```c=
+struct server_child_state
+{
+	int worker_fd;  /* server <-> worker bidirectional notification channel */
+	int pending; /* notification pending yes/no */
+};
+
+struct server_state
+{
+	int sockfd;
+	struct server_child_state children[MAX_CHILDREN];
+	int child_count;
+};
+```
+The first data structure -- server_child_state -- holds infromation about the worker and if there is a notifcation available. The second data structure -- server_state -- holds information about the state of the chidl servers in a singular object. 
+
 ### Data flow through server.c
 
 First, the user must start the server. The program server is run from the application’s root directory with a single argument, port_num, which is the TCP port number for the server to listen on.
@@ -45,14 +63,27 @@ When the server is no longer needed, the allocated memory is freed and the progr
 
 ### Methods in client.c
 ```c=
+char* huidigeTijd()
 static int client_connect(struct client_state *state, const char *hostname, uint16_t port) 
 static int client_process_command(struct client_state *state) 
-execute_request( struct client_state *state, const struct api_msg *msg) 
+static int execute_request( struct client_state *state, const struct api_msg *msg) 
 static int handle_server_request(struct client_state *state)
 static int handle_incoming(struct client_state *state)
 static int client_state_init(struct client_state *state)
 static void client_state_free(struct client_state *state)
 ```
+
+### Data structure in client.c
+```c=
+struct client_state
+{
+	struct api_state api;
+	int eof;
+	struct ui_state ui;
+};
+```
+This data structure holds information about the state of the client in a singular object. 
+
 
 ### Data flow through client.c
 
@@ -75,7 +106,7 @@ Currently, the server is first set up, then clients are able to join the server.
 
 Client:
 
-- The client is able to register a new account through a username and password. The max length for usernames and passwords is 30 characters.
+- The client is able to register a new account through a username and password. The max length for usernames and passwords is 20 characters.
 - The client can only login to an account if he/she uses the associated password
 - The client can exit by logging out from the server. This also terminates the client program
 - When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
@@ -107,10 +138,7 @@ The server makes multiple workers that handle incoming connections from an exter
 
 Currently, there is no limit set to the size of the packets that the client may send to the server. The server, however, reads incoming packets with **size** 256, meaning that if you send a message that is longer than 256 ASCII characters, the server will split your message up in multiple smaller ones (*each with a maximum size of 256 characters, of course*). Only the last portion of the split, however, gets sent to other users. This is a bug that we still need to fix.
 
-#### Possible types of interactions between server and clients, 
-Interactions between the server and clients are mostly reading and writing via a socket.
-
-### Assignment 1b
+### Implemented security measures
 
 For client A to send a message to client B, client A sends a message to the server, which then reads and writes the message to client B via a socket. Thus, the server is always an intermediary between two clients sending and receiving messages, and there are no direct connections between clients. This is an important feature of our program since reading and modifying data sent over any network connection is explicit in our threat model. We want to lower the chances of one client taking advantage of another client's lax security behaviours and launching an attack.
 
@@ -118,13 +146,18 @@ There are two types of messages that a client can send to another client, privat
 
 There are several cryptographic methods in place to protect users and their messages. One of our program's main priorities is protecting the addresses of our clients, since according to the threat model, Mallory will try to determine the addresses of all clients and servers. To protect users' addresses, we authenticate users via signing into accounts. Each user has their own unique username and password. We ensure that passwords cannot be easily guessed by a computer and have a high complexity for computers while being easy to remember for users. We ensure that only authenticated users can access permitted resources, and thus we check the user's permissions to a resource on every access request. 
 
-Moreover, we assign each authenticated user a set of unique private and public keys. We generate and store the users' personal keys in the clientkey directory on the disk, while the server's keys are stored in the serverkeys directory on the disk. 
-There is also a trusted, third-party (TTP) script which we wrote to verify keys via the **ttpkeys** directory. We invoke the TTP from our program when setting up a new user. However, since TTP is a separate server that is susceptible to attacks, we give it the bare minimum information and privileges necessary when verifying. It can only validate and read the keys from the directory. It cannot write to those directories. Do keep in mind that the TTP is really a separate server that should receive as little private information as possible. This TTP prevents Mallory from spoofing her network address to any possible value and then attempting to establish a connection with the client or server.
+Moreover, we assign each authenticated user a set of unique private and public keys. We generate and store the users' personal keys in the clientkey directory on the disk, while the server's keys are stored in the serverkeys directory on the disk.  There is also a trusted, third-party (TTP) script which we wrote to verify keys via the **ttpkeys** directory. We invoke the TTP from our program when setting up a new user. However, since TTP is a separate server that is susceptible to attacks, we give it the bare minimum information and privileges necessary when verifying. It can only validate and read the keys from the directory. It cannot write to those directories. Do keep in mind that the TTP is really a separate server that should receive as little private information as possible. This TTP prevents Mallory from spoofing her network address to any possible value and then attempting to establish a connection with the client or server.
 Specifically, we use the OpenSSL library to allow users to create a signature and then be able to validate that signature. We generate a private and public key pair for the client and place them into the aforementioned **clientkey** and **serverkey** directories. In our program, we use the function provided by the cryptographic library RSA_generate_key_ex to generate the initial keys. When a client signs in using SSL, we read their private key, and then we assign their key to an EVP key structure. Later on, when we verify a signature, we read the client's public key, assign it to an EVP key, and then we use a hash function to verify the user's identity.  
 
 Since the **clientkey**, **serverkey**, and **ttpkeys** directory are all located locally within the root directory, attackers cannot access those keys unless they compromised our server and chat client. Thus, we decrease the odds of a data leak by storing keys locally. We also have specific permissions for each directory, however, these files are writable, which makes them even more important to protect. 
 
-If the server is compromised, we ensure that users' private messages cannot be leaked by utilising encryption. Specifically, we use RSA encryption to encrypt and decrypt messages. To encrypt a message, a user sends a message to the server, which is then checked to be less than the available memory for the message. Using the client's public key, the message is encrypted via the XOR function and outputted on stdout. 
+If the server is compromised, we ensure that users' private messages cannot be leaked by utilising encryption. Specifically, we use RSA encryption to encrypt and decrypt messages. 
+
+To read encrypt and decrypt messages, we first read in the plaintext that the first client wants to send from stdin as well as their username. We check that the plaintext size fits within the key size (including padding) to ensure there are no buffer overflows. We chose our key length size to be 2048. 
+
+Once this is complete, we generate RSA private and public keys using functions in the OpenSSL library. We write these to the clientkey directory within the repository. Next, we use the RSA_public_encrypt function in the OpenSSL library to encrypt the plain text with the public key or private key based upon the type of message. Once we have done this, we delete the original plaintext file with the message and send the encrypted file to the server. 
+
+To decrypt the file, we use the private key of the second client and the RSA_ private_decrypt (or public) OpenSSL method. We are able to discern where the message is coming from based upon the associated certificate. 
 
 Furthermore, if the server is compromised – in other words, if we detect suspicious behaviour such as a program attempting to read or overwrite the **clientkey** or **serverkey** directories --  users are sent a message notifying them to change their password and to regenerate their private key. 
 
@@ -157,10 +190,6 @@ To prevent a hacker from reading, modifying, injecting, or blocking data over a 
 5. Attackers may implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
 
 Furthermore, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we plan to implement proper authorisation for every single client, as well as encrypted authentication in every single packet received by a client.
-
-#### Possible threats we did not prevent:
-
-At this time, you cannot register, nor can you log in. You just jump into the chat and you can send messages to everyone. The sender of each message is unknown, making the chat highly anonymous, as of now.
 
 #### User interface
 
