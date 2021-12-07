@@ -108,3 +108,41 @@ void verkrijgWoord(String *s, String *verkregenWoord, int woordNummer)
 	if(s->buffer[s->grootte-1] == ' ' || s->buffer[s->grootte-1] == '\t')
 		{ druk(verkregenWoord, s->buffer[s->grootte-1]); }
 }
+
+int woordenTeller(String *s)
+{
+	int woordenteller = 0;
+	for(int i = 1; i < s->grootte; i++)
+	{
+		if(s->buffer[i-1] == ' ' || s->buffer[i-1] == '\t') { continue; }
+		if(i == s->grootte-1 || s->buffer[i] == ' ' || s->buffer[i] == '\t') { woordenteller++; }
+	}
+	return woordenteller;
+}
+
+void geefBlok(String *s, String *blok, int blokGrootte, int blokNummer)
+{
+	if(blokNummer < 0) { blokNummer *= -1; }
+	if(blokGrootte < 0) { blokGrootte *= -1; }
+	if(blokGrootte == 0) { return; }
+	
+	int begin = blokGrootte * blokNummer;
+	int eind = begin + blokGrootte;
+	
+	if(begin >= s->grootte) { return; }
+	if(eind >= s->grootte) { eind = s->grootte - 1; }
+	
+	herstelString(blok);
+	for(int i = begin; i < eind; i++) { druk(blok, s->buffer[i]); }
+	snoei(blok);
+}
+
+void geefDeelString(String *s, String *deel, int begin, int eind)
+{
+	if(eind > begin) { int t = begin; begin = eind; eind = t; }
+	if(begin >= s->grootte) { return; }
+	if(eind >= s->grootte) { eind = s->grootte - 1; }
+	
+	herstelString(deel);
+	for(int i = begin; i <= eind; i++) { druk(deel, s->buffer[i]); }
+}

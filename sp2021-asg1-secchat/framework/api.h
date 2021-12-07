@@ -3,16 +3,22 @@
 
 #include <stdbool.h>
 
-struct api_msg {
-  char* message;
+struct api_msg
+{
+	char* message;
+	int length;
 };
 
-struct api_state {
-  int fd;
-  char* username;
-  char* input;
-  
-  /* TODO add required fields */
+struct api_state
+{
+	int fd;
+	//  logintoestand -1 is niet ingelogd, 0 is ingelogd
+	//int fd, logintoestand, gebruikersnaamGROOTTE, wachtwoordGROOTTE;
+	//char* gebruikersnaam;
+	//char* wachtwoord;
+	//char* invoer;
+	
+	/* TODO add required fields */
 };
 
 

@@ -35,7 +35,8 @@ int main()
 }
 
 /* Method to create a database */
-int create_database() {
+int create_database()
+{
 	sqlite3 *db;
 	int ressy = 0;
 
@@ -48,36 +49,37 @@ int create_database() {
 }
 
 /* Method to create a database */
-int create_table() {
+int create_table()
+{
 	sqlite3 *db;
 	int ressy = 0;
 	ressy = sqlite3_open(DATABASE, &db);
 
-
 	const char sql1[5000] = "CREATE TABLE PERSON("
-                      
-                      "USERNAME 		TEXT	NOT NULL, "
-                      "PASSWORD			TEXT    NOT NULL, "
-                      "STATUS           TEXT    NOT NULL, "
-                      "SIGNATURE        INT 	NOT NULL, "
-					  "PRIMARY KEY (USERNAME) );";
+
+							"USERNAME 		TEXT	NOT NULL, "
+							"PASSWORD			TEXT    NOT NULL, "
+							"STATUS           TEXT    NOT NULL, "
+							"SIGNATURE        INT 	NOT NULL, "
+							"PRIMARY KEY (USERNAME) );";
 
 	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
 	sqlite3_close(db);
 	return ressy;
 }
 
-/* 
+/*
  * is called by sqlite3_exec() to print db tables or elements.
- * use sqlite3_get_table() as an alternative if you wish to retrieve 
+ * use sqlite3_get_table() as an alternative if you wish to retrieve
  * data, as opposed to just printing it.
  */
-static int callback(void *NotUsed, int argc, char **argv, char **azColName){
-  int i;
-  for(i=0; i<argc; i++)
-    printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-  printf("\n");
-  return 0;
+static int callback(void *NotUsed, int argc, char **argv, char **azColName)
+{
+	int i;
+	for (i = 0; i < argc; i++)
+		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+	printf("\n");
+	return 0;
 }
 
 // On registration, put in everything right away (name, password, status, certificates)
@@ -97,27 +99,26 @@ void create_account_slot(const char *username, const char *password, const char 
 		exit(-1);
 	}
 
-	//Otherwise, add them to the database
+	// Otherwise, add them to the database
 	char const *initial2 = "INSERT OR IGNORE INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
 	char const *rest = "', 'ONLINE', '";
 	char const *formatting = "', '";
 	char const *formatting2 = "');";
 
 	char *full_command;
-	full_command = malloc(500 + strlen(initial2)+ strlen(username) + strlen(username) + strlen(password) + strlen(rest)+1+4); 
+	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(username) + strlen(password) + strlen(rest) + 1 + 4);
 	strcat(full_command, initial2);
 	strcat(full_command, username);
-	strcat(full_command, formatting); 
+	strcat(full_command, formatting);
 	strcat(full_command, password);
 	strcat(full_command, rest);
 	strcat(full_command, signature);
-	strcat(full_command, formatting2); 
+	strcat(full_command, formatting2);
 
 	ressy = sqlite3_exec(db, full_command, callback, 0, NULL);
 	sqlite3_close(db);
 	free(full_command);
 }
-
 
 // Determine if a user exists
 int authenticate_user(char *username, char *password)
@@ -128,7 +129,7 @@ int authenticate_user(char *username, char *password)
 	char user_table[500];
 	sqlite3_stmt *stmt;
 
-	//int bad_char_index = 0;
+	// int bad_char_index = 0;
 	if ((strchr(username, '\'') != NULL) || (strchr(password, '\'') != NULL))
 	{
 		printf("Bad characters in the username or password. Do not include single quote");
@@ -179,43 +180,42 @@ int authenticate_user(char *username, char *password)
 
 	/* build query */
 	sprintf(user_table, "IF EXISTS (SELECT * FROM USERNAME WHERE USERNAME='%s' "
-						"AND pwd='%s')", username, password);
+						"AND pwd='%s')",
+			username, password);
 
 	ressy = sqlite3_prepare_v2(db, user_table, -1, &stmt, NULL);
 
-	printf("%d",ressy);
+	printf("%d", ressy);
 	printf("\nfirst res\n");
 
 	ressy = sqlite3_bind_text(stmt, 1, username, -1, SQLITE_STATIC);
 
-	printf("%d",ressy);
+	printf("%d", ressy);
 	printf("\ni was here\n");
 
 	ressy = sqlite3_bind_text(stmt, 2, password, -1, SQLITE_STATIC);
 
-	printf("%d",ressy);
+	printf("%d", ressy);
 	printf("\nlast res\n");
 
 	sqlite3_finalize(stmt);
 
 	// fprintf(stderr, "db error: %s\n",
 	// 		sqlite3_errmsg(db));
-	
+
 	return ressy;
 }
-
 
 int get_pwd(char *dbpath, char *name, char **pwd_p)
 {
 	sqlite3 *db;
 	int r;
-	
-	
+
 	/* open database */
 	r = sqlite3_open(dbpath, &db);
 	if (r != SQLITE_OK)
 	{
-		//fprintf(stderr, "open database %s "
+		// fprintf(stderr, "open database %s "
 		//				"failed: %s\n",
 		//		sqlite3_errmsg(db));
 		sqlite3_close(db);
@@ -277,7 +277,6 @@ int login_callback_function(int column_count, char **column_value, char **column
 	sqlite3_close(db);
 	return 0;
 }
-
 
 // void register_new_user(int fd, struct client_info *client)
 // {
