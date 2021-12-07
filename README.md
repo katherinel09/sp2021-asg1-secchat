@@ -178,23 +178,14 @@ Throughout the project, we identified several potential types of attacks our pro
 
 ##### List of potential attacks and approaches taken to prevent the attack:  
 
-Since Mallory does not have local access to our system, she can only access the program through the client or the server. To prevent her from accessing sensitive information by compromising the program, we implemented several approaches listed below. 
-
 1. Attacks may occur at the addresses at which clients and the server are running.
-
-To prevent a hacker from utilising server and client addresses to gain secret information, we placed extra protection on where those addresses can be accessed. 
-
 2. Attackers may attempt to read, modify, inject, and/or block data sent over any network connection between a client and the server.
-
-To prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented multiple check functions to see whether or not malicious input was send.
-
 3. Attacks may attempt to establish a connection with any client or the server, spoofing her network address to any possible value.
-
 4. Attackers may implement a malicious client to attack either the server or other clients by sending specially crafted data.
-
 5. Attackers may implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
 
-Furthermore, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we plan to implement proper authorisation for every single client, as well as encrypted authentication in every single packet received by a client.
+
+Since Mallory does not have local access to our system, she can only access the program through the client or the server. To prevent her from accessing sensitive information by compromising the program, we implemented several approaches listed below. First, to prevent a hacker from utilising server and client addresses to gain secret information, we placed extra protection on where those addresses can be accessed. No one is allowed to access these memory locations. Additionally, to prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented multiple check functions to see whether or not malicious input was sent. We also check for the size of the input to ensure there is not a buffer overflow. Finally, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we plan to implement proper authorisation for every single client, as well as encrypted authentication in every single packet received by a client.
 
 #### User interface
 
