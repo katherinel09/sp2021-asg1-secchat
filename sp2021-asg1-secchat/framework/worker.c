@@ -24,6 +24,10 @@
 #include "ui.h"
 #include "util.h"
 
+// #include <openssl/pem.h>
+#include "openssl/crypto/rsa/rsa_local.h"
+#include "openssl/crypto/pem/pem_local.h"
+
 //#include "database.h"
 
 #define DATABASE "users.db"
@@ -83,6 +87,56 @@ void create_account_slot(const char *username, const char *password, int signatu
 	sqlite3_close(db);
 	free(full_command);
 }
+
+// Step 4: Exchange encrypted messages with a public key
+// $ openssl rsautl -encrypt -inkey bob_public.pem -pubin -in message_to_send.txt -out top_secret.enc
+int public_encrypt(unsigned char *data, int data_len, unsigned char *key, unsigned char *encrypted)
+{
+    RSA *rsa = createRSA(key, 1);
+    int result = RSA_public_encrypt(data_len, data, encrypted, rsa, padding);
+    return result;
+}
+
+int private_encrypt(unsigned char *data, int data_len, unsigned char *key, unsigned char *encrypted)
+{
+    RSA *rsa = createRSA(key, 0);
+    int result = RSA_private_encrypt(data_len, data, encrypted, rsa, padding);
+    return result;
+}
+
+
+// Step 4: Exchange encrypted messages with a public key
+// $ openssl rsautl -encrypt -inkey bob_public.pem -pubin -in message_to_send.txt -out top_secret.enc
+int public_decrypt(int key_length, int encrypted_length, unsigned char encrypted)
+{
+    RSA *public_key = get_pub_priv_keys(*key, 1);
+    unsigned char decrypted[2 * key_length] = {};
+
+    int decrypted_length = private_decrypt(encrypted, encrypted_length, public_key, decrypted);
+    if (decrypted_length == -1)
+    {
+        printLastError("Private decrypt didn't work");
+        exit(0);
+    }
+
+    return decrypted_length
+}
+
+int private_decrypt(int key_length, int encrypted_length, unsigned char encrypted)
+{
+    RSA *private_key = get_my_priv_keys(*key, 0); // get your own private key :)
+    unsigned char decrypted[2 * key_length] = {};
+
+    int decrypted_length = private_decrypt(encrypted, encrypted_length, private_key, decrypted);
+    if (decrypted_length == -1)
+    {
+        printLastError("Private decrypt didn't work");
+        exit(0);
+    }
+
+    return decrypted_length
+
+
 
 char *huidigeDatumEnTijd()
 {
@@ -257,8 +311,8 @@ static int handle_s2w_notification(struct worker_state *state)
 	// printf("Het bericht dat ik net gelezen heb: %s\n", bericht);
 	send(state->api.fd, bericht, READ_SIZE, 0);
 
-	// const char *recipient = "SERVER";
-	// create_message(state->gebruikersnaam, recipient, message);
+	const char *recipient = "SERVER";
+	create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
 	return 0;
 }
 
@@ -348,19 +402,43 @@ static int execute_request(struct worker_state *state, const struct api_msg *msg
 		{
 			// TO DO add the customer to the database
 			int signature = 0;
-			// convert woord_1 and woord_2 to const char *
-			// char *)woord_1, (char *)woord_2,
-			const char *u = "katt";
-			const char *p = "pass";
 
-			create_account_slot(u, p, signature);
+			char *path;
+			char *starting_dir = "/clientkeys/";
+			path = malloc(500);
+			strcat(path, starting_dir);
+			strcat(path, verkrijgString(&woord_1));
+
+			char *username = verkrijgString(&woord_1);
+
+			FILE *fp = fopen(path, "rb");
+
+			if (fp == NULL)
+			{
+				printf("Couldn't add a new key to the directory\n");
+				return NULL;
+			}
+
+			RSA *rsa_public = RSA_new();
+			RSA *rsa_private = RSA_new();
+
+
+			rsa_public = PEM_read_RSA_PUBKEY(path, &rsa_public, NULL, NULL);
+			rsa_private = PEM_read_RSAPrivateKey(path, &rsa_private, NULL, NULL);
+
+			// Write the public and priavte key to the path in the client directory
+			write(rsa_public, path, sizeof(rsa_public));
+			write(rsa_private, path, sizeof(rsa_private));
+
+			fclose(path);
+
+			// convert woord_1 and woord_2 to const char *
+			create_account_slot(*username, verkrijgString(&woord_2), signature);
 
 			kopieerString(verkrijgString(&woord_1), state->gebruikersnaam, woord_1.bladwijzer);
 			kopieerString(verkrijgString(&woord_2), state->wachtwoord, woord_2.bladwijzer);
 			state->gebruikersnaamGROOTTE = woord_1.bladwijzer;
 			state->wachtwoordGROOTTE = woord_2.bladwijzer;
-
-	
 
 			send(state->api.fd, "[server] Jij hebt jou ingeschreven!", READ_SIZE, 0);
 			return 0;
@@ -399,17 +477,12 @@ static int execute_request(struct worker_state *state, const struct api_msg *msg
 	}
 
 	fwrite(verkrijgString(&bericht), 1, READ_SIZE, fp);
-
-	// TODO add message to the database (remote)
-	//int len = sizeof(bericht);
-	//const char *message = malloc(len);
-	//strcpy(message, bericht); 
-
-	const char *message = "this is the message";
-	
-	
 	const char *recipient = "SERVER";
-	create_message(state->gebruikersnaam, recipient, message);
+	create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
+	
+	// Send the message with ssl
+	SSL_write(ssl, verkrijgString(&bericht), strlen(verkrijgString(&bericht))); /* encrypt & send message */
+
 
 	fclose(fp);
 	notify_workers(state);
@@ -563,8 +636,6 @@ int create_database()
 	return ressy;
 }
 
-
-
 /*
  * is called by sqlite3_exec() to print db tables or elements.
  * use sqlite3_get_table() as an alternative if you wish to retrieve
@@ -581,7 +652,6 @@ int create_database()
 // Accounts table, message log table, sessions table (keep track of time)
 // create table if not exists, primary key, etc, look for documentation & list of fields (message table (sender, recipient, other important things))
 // name type name type (text is text, signature usignt)
-
 
 /**
  * @brief Initialize struct worker_state before starting processing requests.
