@@ -1,2 +1,0 @@
-logincommand
-usercommand
