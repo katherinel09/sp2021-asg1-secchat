@@ -13,12 +13,15 @@
 
 #include "util.h"
 #include "worker.h"
+//#include "database.h"
+#include <sqlite3.h>
 
 #define TRUE 1
 #define FALSE 0
 
 #define MAX_CHILDREN 16
 #define TEKEN_LIMIET 256
+#define DATABASE "users.db"
 
 //int ontbeest = TRUE;
 int ontbeest = FALSE;
@@ -36,6 +39,46 @@ struct server_state
 	struct server_child_state children[MAX_CHILDREN];
 	int child_count;
 };
+
+/* Method to create a database of the users*/
+int create_table()
+{
+	sqlite3 *db;
+	int ressy = 0;
+	ressy = sqlite3_open(DATABASE, &db);
+
+	const char sql1[5000] = "CREATE TABLE PERSON("
+
+							"USERNAME 		TEXT	NOT NULL, "
+							"PASSWORD			TEXT    NOT NULL, "
+							"STATUS           TEXT    NOT NULL, "
+							"SIGNATURE        INT 	NOT NULL, "
+							"PRIMARY KEY (USERNAME) );";
+
+	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
+	sqlite3_close(db);
+	return ressy;
+}
+
+// Method to create the documentation & list of fields (message table (sender, recipient, other important things))
+int create_table_log()
+{
+	sqlite3 *db2;
+	int ressy = 0;
+	ressy = sqlite3_open(DATABASE, &db2);
+
+	const char sql1[5000] = "CREATE TABLE MESSAGES("
+
+							"RECIPIENT			TEXT	NOT NULL, "
+							"SENDER				TEXT    NOT NULL, "
+							"MESSAGE			TEXT    NOT NULL, "
+							"CERTIFICATE        TEXT 	NOT NULL, "
+							"PRIMARY KEY (CERTIFICATE) );";
+
+	ressy = sqlite3_exec(db2, sql1, NULL, 0, NULL);
+	sqlite3_close(db2);
+	return ressy;
+}
 
 static int create_server_socket(uint16_t port)
 {
@@ -64,6 +107,11 @@ static int create_server_socket(uint16_t port)
 		perror("error: cannot listen on server socket");
 		goto error;
 	}
+
+	create_table();
+
+	// Method to create the documentation & list of fields (message table (sender, recipient, other important things))
+	create_table_log();
 
 	return fd;
 

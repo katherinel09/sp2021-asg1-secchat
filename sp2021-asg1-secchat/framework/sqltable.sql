@@ -4,7 +4,7 @@ sqlcmd -S SERVERNAME -d MYDATABASE -U USERNAME -P PASSWORD -i C:\path\mysqlfile.
 CREATE DATABASE usersSQL;
 
 IF  NOT EXISTS (SELECT * FROM sys.objects 
-WHERE object_id = OBJECT_ID(N'[dbo].[YourTable]') AND type in (N'U'))
+WHERE object_id = OBJECT_ID(N'[dbo].[USERS]') AND type in (N'U'))
 
     BEGIN
     CREATE TABLE users (

@@ -164,7 +164,7 @@ static int client_process_command(struct client_state *state)
 			{
 				sleep(1);
 				geefBlok(&invoer, &blokjes, TEKEN_LIMIET, i);
-				printf(verkrijgString(&blokjes));
+				//printf(verkrijgString(&blokjes));
 				if(blokjes.grootte > TEKEN_LIMIET) { printf("FOUT!!!"); exit(1); }
 				send(state->api.fd, verkrijgString(&blokjes), blokjes.grootte, 0);
 			}
