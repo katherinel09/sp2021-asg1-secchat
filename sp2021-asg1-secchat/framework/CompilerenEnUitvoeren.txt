@@ -1,2 +1,0 @@
-make
-./client localhost 1234
