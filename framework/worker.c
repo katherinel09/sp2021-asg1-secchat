@@ -90,56 +90,6 @@ void create_account_slot(const char *username, const char *password, int signatu
 	free(full_command);
 }
 
-// Step 4: Exchange encrypted messages with a public key
-// $ openssl rsautl -encrypt -inkey bob_public.pem -pubin -in message_to_send.txt -out top_secret.enc
-int public_encrypt(unsigned char *data, int data_len, unsigned char *key, unsigned char *encrypted)
-{
-    RSA *rsa = createRSA(key, 1);
-    int result = RSA_public_encrypt(data_len, data, encrypted, rsa, padding);
-    return result;
-}
-
-int private_encrypt(unsigned char *data, int data_len, unsigned char *key, unsigned char *encrypted)
-{
-    RSA *rsa = createRSA(key, 0);
-    int result = RSA_private_encrypt(data_len, data, encrypted, rsa, padding);
-    return result;
-}
-
-
-// Step 4: Exchange encrypted messages with a public key
-// $ openssl rsautl -encrypt -inkey bob_public.pem -pubin -in message_to_send.txt -out top_secret.enc
-int public_decrypt(int key_length, int encrypted_length, unsigned char encrypted)
-{
-    RSA *public_key = get_pub_priv_keys(*key, 1);
-    unsigned char decrypted[2 * key_length] = {};
-
-    int decrypted_length = private_decrypt(encrypted, encrypted_length, public_key, decrypted);
-    if (decrypted_length == -1)
-    {
-        printLastError("Private decrypt didn't work");
-        exit(0);
-    }
-
-    return decrypted_length
-}
-
-int private_decrypt(int key_length, int encrypted_length, unsigned char encrypted)
-{
-    RSA *private_key = get_my_priv_keys(*key, 0); // get your own private key :)
-    unsigned char decrypted[2 * key_length] = {};
-
-    int decrypted_length = private_decrypt(encrypted, encrypted_length, private_key, decrypted);
-    if (decrypted_length == -1)
-    {
-        printLastError("Private decrypt didn't work");
-        exit(0);
-    }
-
-    return decrypted_length
-
-
-
 char *huidigeDatumEnTijd()
 {
 	time_t groveTijd;
@@ -254,33 +204,33 @@ void kopieerString(char *origineel, char *kopie, int grootte)
 	}
 }
 
-// Method to create a new user message in the log
-void create_message(const char *username, const char *recipient, const char *message)
-{
-	sqlite3 *db;
-	int ressy = sqlite3_open("users.db", &db);
+// // Method to create a new user message in the log
+// void create_message(const char *username, const char *recipient, const char *message)
+// {
+// 	sqlite3 *db;
+// 	int ressy = sqlite3_open("users.db", &db);
 
-	// Otherwise, add them to the database
-	char const *initial2 = "INSERT INTO MESSAGES (RECIPIENT, SENDER, MESSAGE, CERTIFICATE) VALUES('";
-	char const *rest = "', '";
+// 	// Otherwise, add them to the database
+// 	char const *initial2 = "INSERT INTO MESSAGES (RECIPIENT, SENDER, MESSAGE, CERTIFICATE) VALUES('";
+// 	char const *rest = "', '";
 
-	char const *formatting2 = "CERTIFICATE');";
+// 	char const *formatting2 = "CERTIFICATE');";
 
-	char *full_command;
-	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(recipient) + strlen(message) + 2 * strlen(rest) + 1 + 4);
-	strcat(full_command, initial2);
-	strcat(full_command, recipient);
-	strcat(full_command, rest);
-	strcat(full_command, username);
-	strcat(full_command, rest);
-	strcat(full_command, message);
-	strcat(full_command, rest);
-	strcat(full_command, formatting2);
+// 	char *full_command;
+// 	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(recipient) + strlen(message) + 2 * strlen(rest) + 1 + 4);
+// 	strcat(full_command, initial2);
+// 	strcat(full_command, recipient);
+// 	strcat(full_command, rest);
+// 	strcat(full_command, username);
+// 	strcat(full_command, rest);
+// 	strcat(full_command, message);
+// 	strcat(full_command, rest);
+// 	strcat(full_command, formatting2);
 
-	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
-	sqlite3_close(db);
-	free(full_command);
-}
+// 	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
+// 	sqlite3_close(db);
+// 	free(full_command);
+// }
 
 struct worker_state
 {
@@ -313,8 +263,8 @@ static int handle_s2w_notification(struct worker_state *state)
 	// printf("Het bericht dat ik net gelezen heb: %s\n", bericht);
 	send(state->api.fd, bericht, READ_SIZE, 0);
 
-	const char *recipient = "SERVER";
-	create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
+	//const char *recipient = "SERVER";
+	//create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
 	return 0;
 }
 
@@ -403,39 +353,39 @@ static int execute_request(struct worker_state *state, const struct api_msg *msg
 		if (woord_1.bladwijzer >= 3 && woord_2.bladwijzer >= 6)
 		{
 			// TO DO add the customer to the database
-			int signature = 0;
+			//int signature = 0;
 
-			char *path;
-			char *starting_dir = "/clientkeys/";
-			path = malloc(500);
-			strcat(path, starting_dir);
-			strcat(path, verkrijgString(&woord_1));
+			// char *path;
+			// char *starting_dir = "/clientkeys/";
+			// path = malloc(500);
+			// strcat(path, starting_dir);
+			// strcat(path, verkrijgString(&woord_1));
 
-			char *username = verkrijgString(&woord_1);
+			// char *username = verkrijgString(&woord_1);
 
-			FILE *fp = fopen(path, "rb");
+			//FILE *fp = fopen(path, "rb");
 
-			if (fp == NULL)
-			{
-				printf("Couldn't add a new key to the directory\n");
-				return NULL;
-			}
+			// if (fp == NULL)
+			// {
+			// 	printf("Couldn't add a new key to the directory\n");
+			// 	return NULL;
+			// }
 
-			RSA *rsa_public = RSA_new();
-			RSA *rsa_private = RSA_new();
+			// RSA *rsa_public = RSA_new();
+			// RSA *rsa_private = RSA_new();
 
 
-			rsa_public = PEM_read_RSA_PUBKEY(path, &rsa_public, NULL, NULL);
-			rsa_private = PEM_read_RSAPrivateKey(path, &rsa_private, NULL, NULL);
+			// rsa_public = PEM_read_RSA_PUBKEY(path, &rsa_public, NULL, NULL);
+			// rsa_private = PEM_read_RSAPrivateKey(path, &rsa_private, NULL, NULL);
 
-			// Write the public and priavte key to the path in the client directory
-			write(rsa_public, path, sizeof(rsa_public));
-			write(rsa_private, path, sizeof(rsa_private));
+			// // Write the public and priavte key to the path in the client directory
+			// write(rsa_public, path, sizeof(rsa_public));
+			// write(rsa_private, path, sizeof(rsa_private));
 
-			fclose(path);
+			// fclose(path);
 
-			// convert woord_1 and woord_2 to const char *
-			create_account_slot(*username, verkrijgString(&woord_2), signature);
+			// // convert woord_1 and woord_2 to const char *
+			// create_account_slot(*username, verkrijgString(&woord_2), signature);
 
 			kopieerString(verkrijgString(&woord_1), state->gebruikersnaam, woord_1.bladwijzer);
 			kopieerString(verkrijgString(&woord_2), state->wachtwoord, woord_2.bladwijzer);
@@ -479,11 +429,11 @@ static int execute_request(struct worker_state *state, const struct api_msg *msg
 	}
 
 	fwrite(verkrijgString(&bericht), 1, READ_SIZE, fp);
-	const char *recipient = "SERVER";
-	create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
+	//const char *recipient = "SERVER";
+	//create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
 	
 	// Send the message with ssl
-	SSL_write(ssl, verkrijgString(&bericht), strlen(verkrijgString(&bericht))); /* encrypt & send message */
+	//SSL_write(ssl, verkrijgString(&bericht), strlen(verkrijgString(&bericht))); /* encrypt & send message */
 
 
 	fclose(fp);

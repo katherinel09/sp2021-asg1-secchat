@@ -1,14 +1,16 @@
 .PHONY: all clean
 
 CFLAGS=-g -Wall -Werror -UDEBUG
-LDLIBS=-lsqlite3 -DSQLITE_USER_AUTHENTICATION # -lcrypto -lssl
+LDLIBS= -lsqlite3 -DSQLITE_USER_AUTHENTICATION -lcrypto -lssl
 
 all: client server # database
 
 clean:
-	rm -f server client database *.o users.db
+	rm -f sqlite3 server client database *.o users.db
 
 # database: database.o
+
+sqlite3.o: sqlite3.c sqlite3.h
 
 ui.o: ui.c ui.h
 
