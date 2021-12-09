@@ -14,19 +14,21 @@
 #include "inloggegevens.h"
 //#include "database.h"
 
+
 #include "sqlite3.h"
 #include <stdio.h>
 
 #include <assert.h>
-#include <sqlite3.h>
 #include <stdio.h>
 
 #include "ui.h"
 #include "util.h"
 
-// #include <openssl/pem.h>
-#include "openssl/crypto/rsa/rsa_local.h"
-#include "openssl/crypto/pem/pem_local.h"
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+//#include "openssl/rsa.h"
+
+
 
 //#include "database.h"
 
