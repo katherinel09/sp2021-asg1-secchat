@@ -56,6 +56,15 @@ First, the user must start the server. The program server is run from the applic
 $ ./server port_num &
 ```
 
+OR
+
+
+```bash
+$ ./ssl-nonblock-server port_num &
+```
+
+(safer)
+
 In the main funtion, a reference for the port is defined as well as a new server_state struct. The arguments are then parsed to ensure that no malicious arguments may be entered by an attacker to manipulate our system. 
 
 Then, we initialise the state of the server using the reference to the above struct. We clear the previous memory addresses and begin to initialise the correct sockets to the specified ports according to the system requirements. 
@@ -97,6 +106,14 @@ The user runs the client side with the below parameters, at the same port as the
 ```bash
 $ ./client localhost port_num
 ```
+
+OR 
+
+```bash
+$ ./ssl-nonblock-client localhost 1234
+```
+
+
 
 First, we disable buffering of the output to ensure that hackers are unable to mine for private data. Once this is done through the setvbuf function, we parse the number of inputted arguments for correctness, as well as ensuring that there are no possibilities of malicious inputs. 
 

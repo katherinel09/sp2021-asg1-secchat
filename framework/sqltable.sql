@@ -10,9 +10,10 @@ WHERE object_id = OBJECT_ID(N'[dbo].[USERS]') AND type in (N'U'))
     CREATE TABLE users (
         usrnme varchar(255),
         pswrd varchar(255),
-        the_tatus varchar(255), 
+        pubkey varchar(255), 
+        privkey varchar(255), 
         signat_num int, 
-        PRIMARY KEY (ID)
+        PRIMARY KEY (username)
     );
 
     CREATE TABLE message_logs (

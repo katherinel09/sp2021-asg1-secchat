@@ -15,6 +15,9 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include "ssl-nonblock.h"
+#include <openssl/ssl.h>
+
 
 #define TRUE 1
 #define FALSE 0
@@ -103,8 +106,8 @@ int gen_certificates()
 {
 
 	/* initialize SSL */
-	con_ssl = InitServerCTX();
-	LoadCertificates(con_ssl, "/clientkey/username/public_key.pem", "/clientkey/username/private_key.pem"); /* load certs */
+	//con_ssl = InitServerCTX();
+	//LoadCertificates(con_ssl, "/clientkey/username/public_key.pem", "/clientkey/username/private_key.pem"); /* load certs */
 
 	// SSL_write(ssl, input, strlen(input)); /* encrypt & send message */
 
@@ -118,8 +121,8 @@ struct client_state
 	struct ui_state ui;
 
 	/* TODO client state variables go here */
-	char *username = "katherinelasonde";
-	int status = 0; // 0 => user is logged in ; 1 => user is not logged in
+	char *usrnm;
+	int status; // 0 => user is logged in ; 1 => user is not logged in
 
 	SSL *ssl;
 	// SSL_CTX *c;
@@ -182,18 +185,65 @@ static int client_connect(struct client_state *state, const char *hostname, uint
 	}
 
 	printf("Hi! Welcome to Kat's secure chatting server to chat with your friends. Please type /login [username] [password] or /register [username] [password]\n");
-	printf(" For reference, this is the UI for the command line chat server :)\n
-
-			registercommand = /register [username] [password]\n
-			logincommand = /login [username] [password] \n
-			privmsgcommand  = @ [sender_username] [message]\n
-			pubmsgcommand = message\n
-			registercommand = /register [username] [password]\n
-			list all users = /users\n	
-			exitcommand = /exit (exitcommand) \n");
-
+	printf("For reference, this is the UI for the command line chat server :)");
+	printf("registercommand = /register [username] [password] \n");
+	printf("logincommand = /login [username] [password] \n");
+	printf("privmsgcommand  = @ [sender_username] [message] \n");
+	printf("pubmsgcommand = message \n");
+	printf("registercommand = /register [username] [password] \n");
+	printf("list all users = /users \n");
+	printf("exitcommand = /exit (exitcommand) \n");
 
 	return fd;
+}
+
+void print_all_users_in_database()
+{
+	char *full_command;
+	full_command = malloc(1000);
+
+	strcat(full_command, "SELECT USERNAME FROM PERSONS\n users = {name[0] for USERNAMES in users.fetchall() \n print(users)} ");
+
+	sqlite3 *db;
+	int ressy;
+	ressy = sqlite3_open("users.db", &db);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3 database\n");
+		exit(-1);
+	}
+
+	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
+	// querey_database_for_username(username, password);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3\n");
+		exit(-1);
+	}
+
+	sqlite3_close(db);
+	free(full_command);
+}
+
+/* A function to check for double user names */
+int check_for_double_username(char *username)
+{
+	sqlite3 *db;
+	sqlite3_open("users.db", &db);
+
+	char *initial = "SELECT USERNAME FROM PERSONS(all_usernames = {PERSON[0] for USERNAME in db.fetchall()}; if usernameinput in names: { return 1; } else { return -1; }";
+
+	char *full_command = malloc(1000);
+	strcat(full_command, initial);
+
+	int ressy;
+	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
+
+	free(full_command);
+
+	return ressy;
 }
 
 static int client_process_command(struct client_state *state)
@@ -246,69 +296,66 @@ static int client_process_command(struct client_state *state)
 	{
 		exit(0);
 	}
-	else if (strcmp(verkrijgString(&woord_0), "/login") == 0) == 0)
-		{
-			if (woordenteller < 3)
-			{
-				printf("Try: /login [username] [password]\n");
-			}
-			else if (woordenteller >= 3 && woord_1.pointer >= 3 && woord_2.pointer >= 6)
-			{
-				send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
-			}
-			else
-			{
-				printf("Error: a username should have at least three characters; a password has at least six.\n");
-			}
-		}
-	else if (strcmp(verkrijgString(&woord_0), "/register") == 0 || strcmp(verkrijgString(&woord_0)) == 0)
+	else if (strcmp(verkrijgString(&woord_0), "/login") == 0)
 	{
 		if (woordenteller < 3)
 		{
-			printf("Username: /login [username] [password]\n");
+			printf("Try: /login [username] [password]\n");
 		}
-		else if (woord_1.pointer < 3)
+		else if (woordenteller >= 3 && woord_1.pointer >= 3 && woord_2.pointer >= 6)
 		{
-			printf("Error: Your username must be at least three characters long..\n");
-		}
-		else if (woord_2.pointer < 6)
-		{
-			printf("Error: Your password must be at least six characters long.\n");
+			(state->usrnm) = username;
+			send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
 		}
 		else
 		{
-			int ressy = check_for_double_username(woordenteller);
-			if (ressy = -1)
+			printf("Error: a username should have at least three characters; a password has at least six. \n");
+		}
+	}
+	else if (strcmp(verkrijgString(&woord_0), " /register ") == 0)
+	{
+		if (woordenteller < 3)
+		{
+			printf("Username: /login [username] [password] \n");
+		}
+		else if (woord_1.pointer < 3)
+		{
+			printf("Error: Your username must be at least three characters long. \n");
+		}
+		else if (woord_2.pointer < 6)
+		{
+			printf("Error: Your password must be at least six characters long. \n");
+		}
+		else
+		{
+			int ressy = check_for_double_username(verkrijgString(&woord_1));
+			if (ressy == -1)
 			{
-				printf("Sorry, that user name is already taken! ")
+				printf("Sorry, that user name is already taken! ");
 			}
 			else
 			{
 				// add user to the database
 				create_account_slot(username, password, 1234);
-
+				(state->usrnm) = username;
 				send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
 			}
 		}
 	}
-	else if (strcmp(verkrijgString(&woord_0), "/users") == 0) == 0)
-		{
-			// Check that the user is logged in
-			if (state->status != 0)
-			{
-				sprintf("Please log in to see a list of users.");
-				exit(0);
-			}
-
-			// Print all of the users in the database
-			print_all_users_in_database();
-		}
-	else if (verkrijgString(&woord_0)[0] == '@')
+	else if (strcmp(verkrijgString(&woord_0), "/users") == 0)
 	{
-		printf("privébericht\n");
+		// Check that the user is logged in
+		if (state->status != 0)
+		{
+			printf("Please log in to see a list of users.");
+			exit(0);
+		}
+
+		// Print all of the users in the database
+		print_all_users_in_database();
 	}
 	// sending a public message
-	else if (verkrijgString(&woord_0)[0] == 'message')
+	else if (strcmp(verkrijgString(&woord_0), "messages") == 0)
 	{
 		// To send a public message, encrypt with your public key
 		unsigned char *inbuf, *outbuf;
@@ -376,8 +423,8 @@ static int client_process_command(struct client_state *state)
 		}
 
 		/* perform decryption from inbuf to outbuf */
-		outbuf = malloc(message);
-		outlen = RSA_public_encrypt(inlen, inbuf, message, key, RSA_PKCS1_OAEP_PADDING); /* random padding, needs 42 bytes */
+		outbuf = malloc(sizeof(message));
+		outlen = RSA_public_encrypt(inlen, inbuf, outbuf, key, RSA_PKCS1_OAEP_PADDING); /* random padding, needs 42 bytes */
 
 		/* write ciphertext to a single user  */
 		ssl_block_write(state->ssl, state->api.fd, outbuf, outlen);
@@ -390,10 +437,10 @@ static int client_process_command(struct client_state *state)
 		char *full_dir = malloc(500);
 		char *dir = " ./clientkeys/privatekeys/";
 		strcat(full_dir, dir);
-		strcar(full_dir, username);
+		strcat(full_dir, username);
 		char *space = " ";
-		strcar(full_dir, space);
-		strcar(full_dir, message);
+		strcat(full_dir, space);
+		strcat(full_dir, message);
 
 		// put all of the pieces together :)
 		strcat(path_to_sign, path);
@@ -408,10 +455,10 @@ static int client_process_command(struct client_state *state)
 
 		return 0;
 	}
-	else if (verkrijgString(&woord_0)[0] == '/exit')
+	else if (strcmp(verkrijgString(&woord_0), "/exit") == 0)
 	{
-		printf("Thank you so much for using the secure chat server today!! Thank you for logging out. ")
-			exit(1);
+		printf("Thank you so much for using the secure chat server today!! Thank you for logging out. ");
+		exit(1);
 	}
 
 	else
@@ -479,7 +526,8 @@ int decrypt_a_message(char *username_of_sender, char *message)
 	outbuf = malloc(RSA_size(key));
 
 	/* random padding, needs 42 bytes */
-	outlen = RSA_private_decrypt(sizeof(message), message, outbuf, key, RSA_PKCS1_OAEP_PADDING);
+	outlen = RSA_private_decrypt(inlen, inbuf, outbuf, key, RSA_PKCS1_OAEP_PADDING); /* random padding, needs 42 bytes */
+
 
 	/* write plaintext to stdout */
 	write(1, outbuf, outlen);
@@ -494,10 +542,10 @@ int decrypt_a_message(char *username_of_sender, char *message)
 	char *full_dir = malloc(500);
 	char *dir = " ./clientkeys/privatekeys/";
 	strcat(full_dir, dir);
-	strcar(full_dir, username_of_sender);
+	strcat(full_dir, username_of_sender);
 	char *space = " ";
-	strcar(full_dir, space);
-	strcar(full_dir, message);
+	strcat(full_dir, space);
+	strcat(full_dir, message);
 
 	// put all of the pieces together :)
 	strcat(path_to_sign, path);
@@ -511,36 +559,6 @@ int decrypt_a_message(char *username_of_sender, char *message)
 	free(path_to_sign);
 
 	return 0;
-}
-
-void print_all_users_in_database()
-{
-	char *full_command;
-	full_command = malloc(1000);
-
-	strcat(full_command, "SELECT USERNAME FROM PERSONS\n users = {name[0] for USERNAMES in users.fetchall() \n print(users)} ");
-
-	sqlite3 *db;
-	int ressy;
-	ressy = sqlite3_open("users.db", &db);
-
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an issue connecting to SQLLite3 database\n");
-		exit(-1);
-	}
-
-	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
-	// querey_database_for_username(username, password);
-
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an issue connecting to SQLLite3\n");
-		exit(-1);
-	}
-
-	sqlite3_close(db);
-	free(full_command);
 }
 
 /**
@@ -562,7 +580,6 @@ static int handle_server_request(struct client_state *state)
 {
 	struct api_msg msg;
 	int r, success = 1;
-	log("CLIENT: static int handle_server_request(struct client_state *state)");
 	assert(state);
 
 	/* wait for incoming request, set eof if there are no more requests */
@@ -580,7 +597,6 @@ static int handle_server_request(struct client_state *state)
 	/* execute request */
 	if (execute_request(state, &msg) != 0)
 	{
-		log("if (execute_request(state, &msg) != 0)");
 		success = 0;
 	}
 
@@ -604,18 +620,13 @@ static int handle_incoming(struct client_state *state)
 	/* if we have work queued up, this might be a good time to do it */
 
 	/* ask user for input if needed */
-	print("Here is the list of commands: \n
-		  For reference,
-		  this is the UI for the command line chat server:)\n
-
-		registercommand = / register[username][password]\n
-								logincommand = / login[username][password] \n
-													 privmsgcommand = @[ username ][message]\n
-												   pubmsgcommand = message\n
-													   registercommand = / register[username][password]\n
-																			   list all users = / users\n
-																									  exitcommand = / exit(exitcommand) \n "
-		);
+	printf("registercommand = /register [username] [password] \n");
+	printf("logincommand = /login [username] [password] \n");
+	printf("privmsgcommand  = @ [sender_username] [message] \n");
+	printf("pubmsgcommand = message \n");
+	printf("registercommand = /register [username] [password] \n");
+	printf("list all users = /users \n");
+	printf("exitcommand = /exit (exitcommand) \n");
 
 	/* list file descriptors to wait for */
 	FD_ZERO(&readfds);
@@ -665,37 +676,10 @@ static int client_state_init(struct client_state *state)
 
 	/* TODO any additional client state initialization */
 	printf("Hello! ");
-	printf(state->username);
+	printf("%s", state->usrnm);
 	printf("\nPlease type /users to see a list of users in the database. If you would like to send a message to a user, type /privatemessage [their user name] [your message]\n");
 	printf("If you would like to send a public message (to all users), type /publicmessage [your message]\n");
 	return 0;
-}
-
-/* A function to check for double user names */
-int check_for_double_username(char *username)
-{
-	sqlite3 *db;
-	sqlite3_open("users.db", &db);
-
-	char *initial = "SELECT USERNAME FROM PERSONS\n
-		all_usernames = {PERSON[0] for USERNAME in db.fetchall()}\n
-		if usernameinput in names:
-	{
-		return 1
-	}
-	else { return -1 }
-	";
-
-		char *full_command;
-	full_command = malloc(1000);
-	strcat(full_command, initial);
-
-	int ressy;
-	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
-
-	free(full_command);
-
-	return ressy;
 }
 
 static void client_state_free(struct client_state *state)
