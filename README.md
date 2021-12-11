@@ -2,9 +2,9 @@
 # sp2021-asg1-seccaht
 
 ### Program Description
-SP2021-ASF1-SECCHAT is a standalone program that consists of a '*chat server*' which maintains chat states to allow for a conversation to take place, as well as a '*chat client*' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include (*but won't be limited to*) are users sending and receiving private and public messages. 
+SP2021-ASF1-SECCHAT is a standalone program that consists of a '*chat server*' which maintains chat states to allow for a conversation to take place, as well as a '*chat client*' to allow users to communicate with the server. The goal of the program is to host a secure chat application in C that runs on Linux. The states that the server will include users sending and receiving private and public messages. 
 
-The state of this README currently reflects the functionality as November 16 for the first deadline of assignment one. The goal of this deadline is to build a secure chat application between a client and a server. Specifically, we implemented the functionality of sending messages, receiving messages, parsing commands, and showing messages between two users. 
+The state of this README currently reflects the functionality as of December 11, 2021.
 
 # To compile: 
 Run '*make*' or '*make all*' in the root directory. Linker tags include -lcrypto -lssl -lsqlite3. 
@@ -138,6 +138,7 @@ In particular:
 2. The server and client's keys are both stored in the directories **serverkeys** and **clientkeys** within the root directory
 3. Programs may not access each other's keys without invoking a trusted third party to access the **ttpkeys** directory
 4. Restarting the server does not result in any loss of data
+
 #### How the server and clients communicate
 
 The server makes multiple workers that handle incoming connections from an external client. Via a socket, the worker and the client can send data. Every worker is connected to the server by a different bidrectional socket. By reading or writing to this bidrectional socket, either the worker or the server can notify each other that an action has to be taken. In this way, the client can communicate with the server and the server can communicate with all the connected clients. 
@@ -157,7 +158,7 @@ Specifically, we use the OpenSSL library to allow users to create a signature an
 
 Since the **clientkey**, **serverkey**, and **ttpkeys** directory are all located locally within the root directory, attackers cannot access those keys unless they compromised our server and chat client. Thus, we decrease the odds of a data leak by storing keys locally. We also have specific permissions for each directory, however, these files are writable, which makes them even more important to protect. 
 
-If the server is compromised, we ensure that users' private messages cannot be leaked by utilising encryption. Specifically, we use RSA encryption to encrypt and decrypt messages. 
+If the server is compromised, we ensure that users' private messages cannot be leaked by utilising encryption. Specifically, we use RSA encryption to encrypt and decrypt messages. On top of this, we use a shell script to generate and validate signatures. 
 
 To read encrypt and decrypt messages, we first read in the plaintext that the first client wants to send from stdin as well as their username. We check that the plaintext size fits within the key size (including padding) to ensure there are no buffer overflows. We chose our key length size to be 2048. 
 
@@ -167,7 +168,9 @@ To decrypt the file, we use the private key of the second client and the RSA_ pr
 
 Furthermore, if the server is compromised – in other words, if we detect suspicious behaviour such as a program attempting to read or overwrite the **clientkey** or **serverkey** directories --  users are sent a message notifying them to change their password and to regenerate their private key. 
 
-We also utilise the techniques of padding and cipher block chaining to provide an additional layer of security on users' private messages. We do not want Mallory to be able to find out anything about the messages for another recipient. To implement padding, we add extra bits to each byte of data (*even if they are a multiple of the key size*) using the cryptographic library. To implement cipher block chaining, we divide the messages a user intends to send into blocks, and then perform computations on those blocks. The computation performed on a block is the XOR of the previous blocks' ciphertext and the current block's plaintext. (*The initial block uses a randomly generated initialisation vector since there is no previous block.*) We also encrypt public messages to prevent users outside of the program from reading them. We do not want a banned user to connect and read public messages.
+We also utilise the techniques of padding and cipher block chaining to provide an additional layer of security on users' private messages. We do not want Mallory to be able to find out anything about the messages for another recipient. To implement padding, we add extra bits to each byte of data (42 bits to be exact) when using the cryptographic library. 
+
+To implement cipher block chaining, we divide the messages a user intends to send into blocks, and then perform computations on those blocks. The computation performed on a block is the XOR of the previous blocks' ciphertext and the current block's plaintext. (*The initial block uses a randomly generated initialisation vector since there is no previous block.*) We also encrypt public messages to prevent users outside of the program from reading them. We do not want a banned user to connect and read public messages.
 
 Additionally, code injections are a specific code in our threat model. Thus, to prevent code injections, we prevent users from being able to inject an escape sequence into our database. Thus, we check for special C-language escape characters \n, \r, \t, \a, \b, \f, \v, and many more whenever users input data. We also check for SQL injection sequences of characters, and thus we parse messages for the 'character. We use the C standard library, the OpenSSL crypto, SSL libraries, and the sqlite3 libraries to prevent escaping.
 
@@ -185,31 +188,7 @@ Throughout the project, we identified several potential types of attacks our pro
 4. Attackers may implement a malicious client to attack either the server or other clients by sending specially crafted data.
 5. Attackers may implement a malicious server and get clients to connect to it instead of the intended server, to attack clients by sending specially crafted data.
 
-
 Since Mallory does not have local access to our system, she can only access the program through the client or the server. To prevent her from accessing sensitive information by compromising the program, we implemented several approaches listed below. First, to prevent a hacker from utilising server and client addresses to gain secret information, we placed extra protection on where those addresses can be accessed. No one is allowed to access these memory locations. Additionally, to prevent a hacker from reading, modifying, injecting, or blocking data over a network, we implemented multiple check functions to see whether or not malicious input was sent. We also check for the size of the input to ensure there is not a buffer overflow. Finally, attackers may try to perform these actions any number of times, possibly simultaneously. In order to prevent simultaneous attacks, we plan to implement proper authorisation for every single client, as well as encrypted authentication in every single packet received by a client.
-
-#### User interface
-
-```c=
-inputline
-command
-= [WHITESPACE] command [WHITESPACE] NEWLINE
-= exitcommand | logincommand | privmsgcommand | pubmsgcommand |
-  registercommand | userscommand
-= "/exit"
-= "/login" WHITESPACE username WHITESPACE password
-exitcommand
-logincommand
-privmsgcommand  = "@" username WHITESPACE message
-pubmsgcommand   = message
-registercommand = "/register" WHITESPACE username WHITESPACE password
-userscommand
-username
-password
-= "/users"
-= TOKEN
-= TOKEN
-```
 
 #### Testing plan
 
@@ -230,4 +209,4 @@ Specific test attacks we tested:
 - Attackers attempting to leak or corrupt data in the client or server programs
 - Attackers crashing the client or server programs.
 
-In the final hours of this assignment, we made it such that every user can register only one account, to prevent abuse in the form of making a million accounts to tire out the server. We checked for buffer overflows through arithmetics and chose specific types based on permissible inputs. We often check for incorrect inputs and exit( ) if so. We tested many boundary cases, including an attempted login with no users, an attempted login when there are already max users, repeated users names, and extreme/out of bounds/incorrect type inputs.
+In the final hours of this assignment, we made it such that every user can register only one account, to prevent abuse in the form of making a million accounts to tire out the server. We checked for buffer overflows through arithmetics and chose specific types based on permissible inputs. We often check for incorrect inputs and exit( ) if so. We tested many boundary cases, including an attempted login with no users, an attempted login when there are already max users, repeated users names, and extreme/out of bounds/incorrect type inputs. Thank you so much for reading!!
