@@ -11,30 +11,87 @@
 #include "util.h"
 #include "string.h"
 
+#include <sqlite3.h>
+
 #define TRUE 1
 #define FALSE 0
 #define TEKEN_LIMIET 256
 
 //int ontbeest = TRUE;
 int ontbeest = FALSE;
-#define log(x) if(ontbeest) { printf(x); printf("\n"); }
+#define log(x)        \
+	if (ontbeest)     \
+	{                 \
+		printf(x);    \
+		printf("\n"); \
+	}
 
-char* huidigeTijd()
+int create_account_slot(const char *username, const char *password, int signature)
+{
+
+	// Add them to the database
+	char const *initial2 = "INSERT OR IGNORE INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
+	char const *rest = "', 'ONLINE', '";
+	char const *formatting = "', '";
+	char const *formatting2 = "');";
+
+	char sigINT[100];
+	sprintf(sigINT, "%d", signature);
+
+	char *full_command;
+	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(username) + strlen(password) + strlen(rest) + 1 + 4);
+	strcat(full_command, initial2);
+	strcat(full_command, username);
+	strcat(full_command, formatting);
+	strcat(full_command, password);
+	strcat(full_command, rest);
+	strcat(full_command, sigINT);
+	strcat(full_command, formatting2);
+
+	sqlite3 *db;
+	int ressy;
+	ressy = sqlite3_open("users.db", &db);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3 database\n");
+		exit(-1);
+	}
+
+	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
+	// querey_database_for_username(username, password);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3\n");
+		exit(-1);
+	}
+
+	sqlite3_close(db);
+	free(full_command);
+
+	return ressy;
+}
+
+char *huidigeTijd()
 {
 	time_t groveTijd;
 	struct tm *tijdInformatie;
 	time(&groveTijd);
 	tijdInformatie = localtime(&groveTijd);
-	
+
 	String s, tijd;
 	nieuweString(&s, 25);
 	nieuweString(&tijd, 9);
-	char* momentOpname = asctime(tijdInformatie);
-	
-	for(int i = 0; i < 24; i++) { druk(&s, momentOpname[i]); }
+	char *momentOpname = asctime(tijdInformatie);
+
+	for (int i = 0; i < 24; i++)
+	{
+		druk(&s, momentOpname[i]);
+	}
 	verkrijgWoord(&s, &tijd, 3);
 	verwijderString(&s);
-	
+
 	return verkrijgString(&tijd);
 }
 
@@ -59,23 +116,28 @@ static int client_connect(struct client_state *state, const char *hostname, uint
 	assert(hostname);
 
 	/* look up hostname */
-	if (lookup_host_ipv4(hostname, &addr.sin_addr) != 0) return -1;
+	if (lookup_host_ipv4(hostname, &addr.sin_addr) != 0)
+		return -1;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 
 	/* create TCP socket */
 	fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (fd < 0) {
+	if (fd < 0)
+	{
 		perror("error: cannot allocate server socket");
 		return -1;
 	}
 
 	/* connect to server */
-	if (connect(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
+	if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0)
+	{
 		perror("error: cannot connect to server");
 		close(fd);
 		return -1;
 	}
+
+	printf("Hi! Welcome to Kat's secure chatting server to chat with your friends. Please type /login [username] [password] or /register [username] [password]");
 
 	return fd;
 }
@@ -85,46 +147,60 @@ static int client_process_command(struct client_state *state)
 	/* TODO read and handle user command from stdin;
 	* set state->eof if there is no more input (read returns zero)
 	*/
-	
+
 	int blokAantal = 1;
 	String invoer, woord_0, woord_1, woord_2, blokjes;
-	nieuweString(&invoer, 20); 		// Verstel de begingrootte naar twintig.
-	nieuweString(&woord_0, 20); 	// Verstel de begingrootte naar twintig.
-	nieuweString(&woord_1, 20); 	// Verstel de begingrootte naar twintig.
-	nieuweString(&woord_2, 20); 	// Verstel de begingrootte naar twintig.
-	nieuweString(&blokjes, 20); 	// Verstel de begingrootte naar twintig.
-	verkrijgInvoer(&invoer); 		// Leest de invoer van de gebruiker
-	
-	if(invoer.grootte > TEKEN_LIMIET)
+	nieuweString(&invoer, 20);	// Verstel de begingrootte naar twintig.
+	nieuweString(&woord_0, 20); // Verstel de begingrootte naar twintig.
+	nieuweString(&woord_1, 20); // Verstel de begingrootte naar twintig.
+	nieuweString(&woord_2, 20); // Verstel de begingrootte naar twintig.
+	nieuweString(&blokjes, 20); // Verstel de begingrootte naar twintig.
+	verkrijgInvoer(&invoer);	// Leest de invoer van de gebruiker
+
+	if (invoer.grootte > TEKEN_LIMIET)
 	{
-		for(int i = 0;;i++)
-			{ if(invoer.grootte - i*TEKEN_LIMIET <= 0) { blokAantal = i; break; } }
-		
-		printf("\nOpmerking: hou er rekening mee dat als jouw bericht langer is dan 256 tekens, dat alleen het laatste gedeelte van jouw bericht aankomt bij de andere gebruikers.\n\n");
+		for (int i = 0;; i++)
+		{
+			if (invoer.grootte - i * TEKEN_LIMIET <= 0)
+			{
+				blokAantal = i;
+				break;
+			}
+		}
+
+		printf("if your message is longer than 256 characters, only the last part of your message will reach the other users.\n\n");
 	}
-	
+
 	int woordenteller = woordenTeller(&invoer);
 	//printf("Aantal woorden: %i\n", woordenteller);
 	verkrijgWoord(&invoer, &woord_0, 0); // Achterhaal het eerste woord van de zin.
 	verkrijgWoord(&invoer, &woord_1, 1); // Achterhaal het tweede woord van de zin.
 	verkrijgWoord(&invoer, &woord_2, 2); // Achterhaal het derde woord van de zin.
-	
+
 	/*printf("\nArgument 0: %s\n", verkrijgString(&woord_0));
 	printf("Argument 1: %s\n", verkrijgString(&woord_1));
 	printf("Argument 2: %s\n", verkrijgString(&woord_2));*/
-	
-	if(invoer.grootte == 0) { state->eof = 1; }
-	else { state->eof = 0; }
-	
-	if(strcmp(verkrijgString(&woord_0), "/exit") == 0)
-		{ exit(0); }
-	else if(strcmp(verkrijgString(&woord_0), "/login") == 0 || strcmp(verkrijgString(&woord_0), "/aanmelden") == 0)
+
+	if (invoer.grootte == 0)
 	{
-		if(woordenteller < 3)
+		state->eof = 1;
+	}
+	else
+	{
+		state->eof = 0;
+	}
+
+	if (strcmp(verkrijgString(&woord_0), "/exit") == 0)
+	{
+		exit(0);
+	}
+	else if (strcmp(verkrijgString(&woord_0), "/login") == 0 || strcmp(verkrijgString(&woord_0), "/aanmelden") == 0)
+	{
+		if (woordenteller < 3)
 		{
 			printf("Gebruik: /aanmelden [gebruikersnaam] [wachtwoord]\nvb: /aanmelden willem test123\n");
 		}
-		else if(woordenteller >= 3 && woord_1.bladwijzer >= 3 && woord_2.bladwijzer >= 6)
+		else if (woordenteller >= 3 && woord_1.pointer >= 3 && woord_2.pointer >= 6)
 		{
 			send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
 		}
@@ -133,45 +209,64 @@ static int client_process_command(struct client_state *state)
 			printf("Fout: een gebruikersnaam heeft minimaal drie tekens; een wachtwoord minimaal zes.\n");
 		}
 	}
-	else if(strcmp(verkrijgString(&woord_0), "/register") == 0 || strcmp(verkrijgString(&woord_0), "/registreer") == 0 || strcmp(verkrijgString(&woord_0), "/inschrijven") == 0)
+	else if (strcmp(verkrijgString(&woord_0), "/register") == 0 || strcmp(verkrijgString(&woord_0), "/registreer") == 0 || strcmp(verkrijgString(&woord_0), "/inschrijven") == 0)
 	{
-		if(woordenteller < 3)
+		if (woordenteller < 3)
 		{
-			printf("Gebruik: /inschrijven [gebruikersnaam] [wachtwoord]\nvb: /inschrijven willem test123\n");
+			printf("Username: /login [username] [password]\n");
 		}
-		else if(woord_1.bladwijzer < 3)
+		else if (woord_1.pointer < 3)
 		{
-			printf("Fout: jouw gebruikersnaam moet minimaal drie tekens lang zijn.\n");
+			printf("Error: Your username must be at least three characters long..\n");
 		}
-		else if(woord_2.bladwijzer < 6)
+		else if (woord_2.pointer < 6)
 		{
-			printf("Fout: jouw wachtwoord moet minimaal zes tekens lang zijn.\n");
+			printf("Error: Your password must be at least six characters long.\n");
 		}
-		else 
-		{ send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0); }
+		else
+		{
+			// add user to the database
+			char *username = verkrijgString(&woord_1);
+			char *password = verkrijgString(&woord_2);
+			create_account_slot(username, password, 1234);
+
+			send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
+		}
 	}
-	else if(strcmp(verkrijgString(&woord_0), "/users") == 0 || strcmp(verkrijgString(&woord_0), "/gebruikers") == 0)
+	else if (strcmp(verkrijgString(&woord_0), "/users") == 0 || strcmp(verkrijgString(&woord_0), "/gebruikers") == 0)
 	{
-		printf("gebruikerscommando\n");
+		conn = sqlite3.connect('users.db')
+    	c = conn.cursor()
+    	c.execute("SELECT USERNAME FROM PERSON")  
+
 	}
-	else if(verkrijgString(&woord_0)[0] == '@')
-		{ printf("privébericht\n"); }
+	else if (verkrijgString(&woord_0)[0] == '@')
+	{
+		printf("privébericht\n");
+	}
 	else
 	{
-		if(blokAantal > 1)
+		if (blokAantal > 1)
 		{
-			for(int i = 0; i < blokAantal; i++)
+			for (int i = 0; i < blokAantal; i++)
 			{
 				sleep(1);
 				geefBlok(&invoer, &blokjes, TEKEN_LIMIET, i);
 				//printf(verkrijgString(&blokjes));
-				if(blokjes.grootte > TEKEN_LIMIET) { printf("FOUT!!!"); exit(1); }
+				if (blokjes.grootte > TEKEN_LIMIET)
+				{
+					printf("FOUT!!!");
+					exit(1);
+				}
 				send(state->api.fd, verkrijgString(&blokjes), blokjes.grootte, 0);
 			}
 		}
-		else { send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0); }
+		else
+		{
+			send(state->api.fd, verkrijgString(&invoer), invoer.grootte, 0);
+		}
 	}
-	
+
 	/* Geheugenadressen opschonen */
 	verwijderString(&invoer);
 	verwijderString(&woord_0);
@@ -179,7 +274,7 @@ static int client_process_command(struct client_state *state)
 	verwijderString(&woord_2);
 	verwijderString(&blokjes);
 	return 0;
-	
+
 	/* Opmerking: persoonlijk vind ik het makkelijker om mijn eigen functies en variabelen Nederlandse namen te geven, zodat het makkelijker voor mij is om te onderscheiden tussen wat ik zelf heb geschreven en wat door anderen is geschreven.*/
 }
 
@@ -188,12 +283,12 @@ static int client_process_command(struct client_state *state)
  * @param state   Initialized client state
  * @param msg     Message to handle
  */
- /* Wordt altijd door handle_server_request() aangeroepen. */
+/* Wordt altijd door handle_server_request() aangeroepen. */
 static int execute_request(struct client_state *state, const struct api_msg *msg)
 {
 	log("CLIENT: static int execute_request(struct client_state *state, const struct api_msg *msg)");
 	/* TODO handle request and reply to client */
-	
+
 	return 0;
 }
 
@@ -201,7 +296,7 @@ static int execute_request(struct client_state *state, const struct api_msg *msg
  * @brief         Reads an incoming request from the server and handles it.
  * @param state   Initialized client state
  */
- /* Wordt altijd aangeroepen nadat de klant een bericht naar de server heeft verstuurd*/
+/* Wordt altijd aangeroepen nadat de klant een bericht naar de server heeft verstuurd*/
 static int handle_server_request(struct client_state *state)
 {
 	struct api_msg msg;
@@ -211,11 +306,18 @@ static int handle_server_request(struct client_state *state)
 
 	/* wait for incoming request, set eof if there are no more requests */
 	r = api_recv(&state->api, &msg);
-	if (r < 0) 	{ return -1; }
-	if (r == 0) { state->eof = 1; return 0; }
-	
+	if (r < 0)
+	{
+		return -1;
+	}
+	if (r == 0)
+	{
+		state->eof = 1;
+		return 0;
+	}
+
 	//printf("Verzoek: %s\n", msg.message);
-	
+
 	/* execute request */
 	if (execute_request(state, &msg) != 0)
 	{
@@ -253,25 +355,34 @@ static int handle_incoming(struct client_state *state)
 	fdmax = state->api.fd;
 
 	/* wait for at least one to become ready */
-	r = select(fdmax+1, &readfds, NULL, NULL, NULL);
-	if (r < 0) {
-		if (errno == EINTR) { return 0; }
+	r = select(fdmax + 1, &readfds, NULL, NULL, NULL);
+	if (r < 0)
+	{
+		if (errno == EINTR)
+		{
+			return 0;
+		}
 		perror("error: select failed");
 		return -1;
-		}
+	}
 
 	/* handle ready file descriptors */
 	if (FD_ISSET(STDIN_FILENO, &readfds))
-		{ return client_process_command(state); }
+	{
+		return client_process_command(state);
+	}
 	/* TODO once you implement encryption you may need to call ssl_has_data
 	 * here due to buffering (see ssl-nonblock example)
 	 */
 	if (FD_ISSET(state->api.fd, &readfds))
-		{ return handle_server_request(state); }
+	{
+		return handle_server_request(state);
+	}
 	return 0;
 }
 
-static int client_state_init(struct client_state *state) {
+static int client_state_init(struct client_state *state)
+{
 	/* clear state, invalidate file descriptors */
 	memset(state, 0, sizeof(*state));
 
@@ -283,7 +394,8 @@ static int client_state_init(struct client_state *state) {
 	return 0;
 }
 
-static void client_state_free(struct client_state *state) {
+static void client_state_free(struct client_state *state)
+{
 
 	/* TODO any additional client state cleanup */
 
@@ -294,7 +406,8 @@ static void client_state_free(struct client_state *state) {
 	ui_state_free(&state->ui);
 }
 
-static void usage(void) {
+static void usage(void)
+{
 	printf("usage:\n");
 	printf("  client host port\n");
 	exit(1);
@@ -308,15 +421,20 @@ int main(int argc, char **argv)
 	struct client_state state;
 
 	/* check arguments */
-	if (argc != 3) usage();
-	if (parse_port(argv[2], &port) != 0) usage();
+	if (argc != 3)
+		usage();
+	if (parse_port(argv[2], &port) != 0)
+		usage();
 
 	/* preparations */
 	client_state_init(&state);
 
 	/* connect to server */
 	fd = client_connect(&state, argv[1], port);
-	if (fd < 0) { return 1; }
+	if (fd < 0)
+	{
+		return 1;
+	}
 
 	/* initialize API */
 	api_state_init(&state.api, fd);
@@ -324,7 +442,8 @@ int main(int argc, char **argv)
 	/* TODO any additional client initialization */
 
 	/* client things */
-	while (!state.eof && handle_incoming(&state) == 0);
+	while (!state.eof && handle_incoming(&state) == 0)
+		;
 
 	/* clean up */
 	/* TODO any additional client cleanup */

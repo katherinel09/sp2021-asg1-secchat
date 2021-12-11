@@ -1,3 +1,0 @@
-logincommand
-Bericht:    This       is   a public message      
-privatemsg

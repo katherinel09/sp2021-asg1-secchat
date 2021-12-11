@@ -2,7 +2,7 @@
 
 struct String
 {
-	int bladwijzer;
+	int pointer;
 	int grootte;
 	char *buffer;
 };
@@ -12,13 +12,13 @@ void nieuweString(String *n, int grootte)
 {
 	n -> grootte = grootte;
 	n -> buffer = (char*) malloc(grootte*sizeof(char));
-	n -> bladwijzer = 0;
+	n -> pointer = 0;
 }
 
 void herstelString(String *n)
 {
 	for(int i = 0; i < n->grootte; i++) { n -> buffer[i] = '\0'; }
-	n -> bladwijzer = 0;
+	n -> pointer = 0;
 }
 
 void verwijderString(String *s) { free(s->buffer); }
@@ -30,13 +30,13 @@ void wijzigGrootte(String *s, int n_grootte)
 	for(unsigned short int i = 0; i < s->grootte; i++) { tijdelijk[i] = s->buffer[i];}
 	free(s->buffer); s->buffer = (char*) malloc(n_grootte*sizeof(char));
 	int t = (s->grootte > n_grootte ? n_grootte : s->grootte);
-	if(t > s->bladwijzer) { t = s->bladwijzer; }
+	if(t > s->pointer) { t = s->pointer; }
 	for(unsigned short int i = 0; i < t; i++)
 	{ s->buffer[i] = tijdelijk[i]; }
 	free(tijdelijk); s->grootte = n_grootte;
 }
 
-void snoei(String *s) { wijzigGrootte(s, s->bladwijzer); }
+void snoei(String *s) { wijzigGrootte(s, s->pointer); }
 
 void verdubbelStringGrootte(String *s)
 {
@@ -50,31 +50,31 @@ void verdubbelStringGrootte(String *s)
 
 void druk(String* s, char element)
 {
-	s -> buffer[s -> bladwijzer] = element;
-	s -> bladwijzer++;
+	s -> buffer[s -> pointer] = element;
+	s -> pointer++;
 	
-	if(s->bladwijzer >= s->grootte) { verdubbelStringGrootte(s); }
+	if(s->pointer >= s->grootte) { verdubbelStringGrootte(s); }
 }
 
 void wijzig(String *s, int i, char c)
 {
-	if(! (i >= 0 && i < s->bladwijzer)) { return; }
+	if(! (i >= 0 && i < s->pointer)) { return; }
 	s->buffer[i] = c;
 }
 
 char verkrijg(String *s, int i)
 {
-	if(! (i >= 0 && i < s->bladwijzer)) { return '\0'; }
+	if(! (i >= 0 && i < s->pointer)) { return '\0'; }
 	return s->buffer[i];
 }
 
 char knal(String* s)
 {
-	if(s -> bladwijzer == 0) { return '\0'; }
+	if(s -> pointer == 0) { return '\0'; }
 	
-	s -> bladwijzer--;
-	char c = s -> buffer[s -> bladwijzer];
-	s -> buffer[s -> bladwijzer] = '\0';
+	s -> pointer--;
+	char c = s -> buffer[s -> pointer];
+	s -> buffer[s -> pointer] = '\0';
 	return c;
 }
 

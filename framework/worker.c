@@ -12,8 +12,6 @@
 #include "worker.h"
 #include "string.h"
 #include "inloggegevens.h"
-//#include "database.h"
-
 
 #include "sqlite3.h"
 #include <stdio.h>
@@ -26,11 +24,6 @@
 
 #include <openssl/pem.h>
 #include <openssl/ssl.h>
-//#include "openssl/rsa.h"
-
-
-
-//#include "database.h"
 
 #define DATABASE "users.db"
 
@@ -43,28 +36,52 @@
 
 Login gl[DATABANKGROOTTE]; // gl: gebruikerslijst
 
-// int ontbeestW = TRUE;
-int ontbeestW = FALSE;
-#define log(x)        \
-	if (ontbeestW)    \
-	{                 \
-		printf(x);    \
-		printf("\n"); \
-	}
+/* METHODS FOR THE DATABASE :) */
 
-void create_account_slot(const char *username, const char *password, int signature)
+/* Method to create a database of the users*/
+int create_user_table()
 {
-	// const char *username, const char *password
 	sqlite3 *db;
-	int ressy = sqlite3_open("users.db", &db);
+	int ressy = 0;
+	ressy = sqlite3_open(DATABASE, &db);
 
-	if (ressy != SQLITE_OK)
-	{
-		printf("There was an issue connecting to SQLLite3\n");
-		exit(-1);
-	}
+	const char sql1[5000] = "CREATE TABLE PERSON("
 
-	// Otherwise, add them to the database
+							"USERNAME 		TEXT	NOT NULL, "
+							"PASSWORD			TEXT    NOT NULL, "
+							"STATUS           TEXT    NOT NULL, "
+							"SIGNATURE        INT 	NOT NULL, "
+							"PRIMARY KEY (USERNAME) );";
+
+	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
+	sqlite3_close(db);
+	return ressy;
+}
+
+// Method to create the documentation & list of fields (message table (sender, recipient, other important things))
+int create_message_table()
+{
+	int ressy = 0;
+	sqlite3 *db;
+	ressy = sqlite3_open(DATABASE, &db);
+
+	const char sql1[5000] = "CREATE TABLE MESSAGES("
+
+							"RECIPIENT			TEXT	NOT NULL, "
+							"SENDER				TEXT    NOT NULL, "
+							"MESSAGE			TEXT    NOT NULL, "
+							"CERTIFICATE        TEXT 	NOT NULL, "
+							"PRIMARY KEY (CERTIFICATE) );";
+
+	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
+	sqlite3_close(db);
+	return ressy;
+}
+
+int create_account_slot(sqlite3 *db, const char *username, const char *password, int signature)
+{
+
+	// Add them to the database
 	char const *initial2 = "INSERT OR IGNORE INTO PERSON (USERNAME, PASSWORD, STATUS, SIGNATURE) VALUES('";
 	char const *rest = "', 'ONLINE', '";
 	char const *formatting = "', '";
@@ -83,12 +100,16 @@ void create_account_slot(const char *username, const char *password, int signatu
 	strcat(full_command, sigINT);
 	strcat(full_command, formatting2);
 
+	int ressy;
 	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
 	// querey_database_for_username(username, password);
 
 	sqlite3_close(db);
 	free(full_command);
+
+	return ressy;
 }
+
 
 char *huidigeDatumEnTijd()
 {
@@ -169,28 +190,25 @@ char *huidigeDatumEnTijd()
 		druk(&maandteller, '2');
 	}
 
-	for (int i = 0; i < jaar.bladwijzer; i++)
+	for (int i = 0; i < jaar.pointer; i++)
 	{
 		druk(&einddatum, jaar.buffer[i]);
 	}
 	druk(&einddatum, '-');
-	for (int i = 0; i < maandteller.bladwijzer; i++)
+	for (int i = 0; i < maandteller.pointer; i++)
 	{
 		druk(&einddatum, maandteller.buffer[i]);
 	}
 	druk(&einddatum, '-');
-	for (int i = 0; i < dag.bladwijzer; i++)
+	for (int i = 0; i < dag.pointer; i++)
 	{
 		druk(&einddatum, dag.buffer[i]);
 	}
 	druk(&einddatum, ' ');
-	for (int i = 0; i < tijd.bladwijzer; i++)
+	for (int i = 0; i < tijd.pointer; i++)
 	{
 		druk(&einddatum, tijd.buffer[i]);
 	}
-
-	// Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
-	//~ verwijderString(&s);
 
 	return verkrijgString(&einddatum);
 }
@@ -204,33 +222,34 @@ void kopieerString(char *origineel, char *kopie, int grootte)
 	}
 }
 
-// // Method to create a new user message in the log
-// void create_message(const char *username, const char *recipient, const char *message)
-// {
-// 	sqlite3 *db;
-// 	int ressy = sqlite3_open("users.db", &db);
+// Method to create a new user message in the log
+int create_message(sqlite3 *db, const char *username, const char *recipient, const char *message)
+{
 
-// 	// Otherwise, add them to the database
-// 	char const *initial2 = "INSERT INTO MESSAGES (RECIPIENT, SENDER, MESSAGE, CERTIFICATE) VALUES('";
-// 	char const *rest = "', '";
+	// Otherwise, add them to the database
+	char const *initial2 = "INSERT INTO MESSAGES (RECIPIENT, SENDER, MESSAGE) VALUES('";
+	char const *rest = "', '";
 
-// 	char const *formatting2 = "CERTIFICATE');";
+	char const *formatting2 = ");";
 
-// 	char *full_command;
-// 	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(recipient) + strlen(message) + 2 * strlen(rest) + 1 + 4);
-// 	strcat(full_command, initial2);
-// 	strcat(full_command, recipient);
-// 	strcat(full_command, rest);
-// 	strcat(full_command, username);
-// 	strcat(full_command, rest);
-// 	strcat(full_command, message);
-// 	strcat(full_command, rest);
-// 	strcat(full_command, formatting2);
+	char *full_command;
+	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(recipient) + strlen(message) + 2 * strlen(rest) + 1 + 4);
+	strcat(full_command, initial2);
+	strcat(full_command, recipient);
+	strcat(full_command, rest);
+	strcat(full_command, username);
+	strcat(full_command, rest);
+	strcat(full_command, message);
+	strcat(full_command, rest);
+	strcat(full_command, formatting2);
 
-// 	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
-// 	sqlite3_close(db);
-// 	free(full_command);
-// }
+	int ressy;
+	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
+	sqlite3_close(db);
+	free(full_command);
+
+	return ressy;
+}
 
 struct worker_state
 {
@@ -239,11 +258,17 @@ struct worker_state
 	int server_fd; /* server <-> worker bidirectional notification channel */
 	int server_eof;
 
-	int fd, logintoestand, gebruikersnaamGROOTTE, wachtwoordGROOTTE;
-	char *gebruikersnaam;
-	char *wachtwoord;
+	int fd, logintoestand, usernameSIZE, passwordSIZE;
+	char *username;
+	char *password;
 	char *invoer;
-	/* TODO worker state variables go here */
+
+	// Variables for database
+	int public_key;
+	int private_key;
+
+	// Variables for OpenSSL
+	SSL *ssl;
 };
 
 /**
@@ -252,20 +277,45 @@ struct worker_state
  */
 static int handle_s2w_notification(struct worker_state *state)
 {
-	log("WORKER: static int handle_s2w_notification(struct worker_state *state)");
-	log(" ");
-	char *bericht[READ_SIZE];
-	FILE *fp = fopen("database", "r");
-	fread(bericht, 1, READ_SIZE, fp);
-	// const char *message = "bericht";
-	fclose(fp);
+	// Create database upon starting up!
+	sqlite3 *db;
+	int ressy = sqlite3_open("users.db", &db);
 
-	// printf("Het bericht dat ik net gelezen heb: %s\n", bericht);
-	send(state->api.fd, bericht, READ_SIZE, 0);
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3\n");
+		exit(-1);
+	}
 
-	//const char *recipient = "SERVER";
-	//create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
-	return 0;
+	ressy = create_user_table(db);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue creating the user table\n");
+		exit(-1);
+	}
+
+	ressy = create_message_table(db);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue creating the message table\n");
+		exit(-1);
+	}
+
+	// char *message[READ_SIZE];
+	// ressy = create_message(state->username, recipient, verkrijgString(&message));
+	// FILE *fp = fopen("database", "r");
+	// fread(message, 1, READ_SIZE, fp);
+	//  const char *message = "message";
+
+	// fclose(fp);
+
+	// printf("Het message dat ik net gelezen heb: %s\n", message);
+	sqlite3_close(db);
+	//send(state->api.fd, message, READ_SIZE, 0);
+
+	return ressy;
 }
 
 /**
@@ -273,15 +323,15 @@ static int handle_s2w_notification(struct worker_state *state)
  *                from the client.
  * @param state   Initialized worker state
  */
-/* TODO call this function to notify other workers through server */
+/* Call this function to notify other workers through server */
 __attribute__((unused)) static int notify_workers(struct worker_state *state)
 {
-	log("WORKER: static int notify_workers(struct worker_state *state)");
+	// Varbiables
 	char buf = 0;
 	ssize_t r;
 
-	/* we only need to send something to notify the other workers,
-	 * data does not matter
+	/*
+	 * We only need to send something to notify the other workers, data does not matter
 	 */
 	r = write(state->server_fd, &buf, sizeof(buf));
 
@@ -300,15 +350,25 @@ __attribute__((unused)) static int notify_workers(struct worker_state *state)
  */
 static int execute_request(struct worker_state *state, const struct api_msg *msg)
 {
-	log("WORKER: static int execute_request(struct worker_state *state, const struct api_msg *msg)");
-	FILE *fp = fopen("database", "w");
+	// Create the database
+	sqlite3 *db;
+
+	int ressy = 0;
+	ressy = sqlite3_open(DATABASE, &db);
+
+	if (ressy != SQLITE_OK)
+	{
+		printf("There was an issue connecting to SQLLite3\n");
+		exit(-1);
+	}
+
 	char *invoer = msg->message;
 
-	String woord_0, woord_1, woord_2, bericht, tijdelijk;
+	String woord_0, woord_1, woord_2, message, tijdelijk;
 	nieuweString(&woord_0, 20);	  // Verstel de begingrootte naar twintig.
 	nieuweString(&woord_1, 20);	  // Verstel de begingrootte naar twintig.
 	nieuweString(&woord_2, 20);	  // Verstel de begingrootte naar twintig.
-	nieuweString(&bericht, 20);	  // Verstel de begingrootte naar twintig.
+	nieuweString(&message, 20);	  // Verstel de begingrootte naar twintig.
 	nieuweString(&tijdelijk, 20); // Verstel de begingrootte naar twintig.
 
 	for (int i = 0;; i++)
@@ -325,124 +385,99 @@ static int execute_request(struct worker_state *state, const struct api_msg *msg
 	verkrijgWoord(&tijdelijk, &woord_1, 1);
 	verkrijgWoord(&tijdelijk, &woord_2, 2);
 
-	if ((strcmp(verkrijgString(&woord_0), "/login") == 0 || strcmp(verkrijgString(&woord_0), "/aanmelden") == 0) && woordenteller >= 3)
+	if ((strcmp(verkrijgString(&woord_0), "/login") == 0 || strcmp(verkrijgString(&woord_0), "/signup") == 0) && woordenteller >= 3)
 	{
-		if (woord_1.bladwijzer >= 3 && woord_2.bladwijzer >= 6)
+		if (woord_1.pointer >= 3 && woord_2.pointer >= 6)
 		{
 			// controleer of het inloggen werkt
-			if (strcmp(state->gebruikersnaam, verkrijgString(&woord_1)) == 0 && strcmp(state->wachtwoord, verkrijgString(&woord_2)) == 0)
+			if (strcmp(state->username, verkrijgString(&woord_1)) == 0 && strcmp(state->password, verkrijgString(&woord_2)) == 0)
 			{
-				send(state->api.fd, "[server] Jij hebt jou aangemeld!", READ_SIZE, 0);
+				send(state->api.fd, "[server] Welcome! You logged in!", READ_SIZE, 0);
 				state->logintoestand = 0;
 			}
 			else
 			{
-				send(state->api.fd, "[server] Inloggen mislukt.", READ_SIZE, 0);
+				send(state->api.fd, "[server] There was an error logging in :( ", READ_SIZE, 0);
 			}
 			return 0;
 		}
 		else
 		{
-			send(state->api.fd, "[server] Gebruik: /login [gebruikersnaam] [wachtwoord]\nvoorbeeld: /login willem test123", READ_SIZE, 0);
+			send(state->api.fd, "[server] How to login: /login [username] [password]\n", READ_SIZE, 0);
 			return 0;
 		}
 	}
-	else if ((strcmp(verkrijgString(&woord_0), "/register") == 0 || strcmp(verkrijgString(&woord_0), "/registreer") == 0 || strcmp(verkrijgString(&woord_0), "/inschrijven") == 0) && woordenteller >= 3)
+	else if ((strcmp(verkrijgString(&woord_0), "/register") == 0 || strcmp(verkrijgString(&woord_0), "/registreer") == 0 || strcmp(verkrijgString(&woord_0), "/register") == 0) && woordenteller >= 3)
 	{
-		printf("Een lekker kopje thee!");
-		if (woord_1.bladwijzer >= 3 && woord_2.bladwijzer >= 6)
+		
+		if (woord_1.pointer >= 3 && woord_2.pointer >= 6)
 		{
 			// TO DO add the customer to the database
-			//int signature = 0;
-
-			// char *path;
-			// char *starting_dir = "/clientkeys/";
-			// path = malloc(500);
-			// strcat(path, starting_dir);
-			// strcat(path, verkrijgString(&woord_1));
-
+			// int signature = 0;
 			// char *username = verkrijgString(&woord_1);
+			// char *password = verkrijgString(&woord_2);
 
-			//FILE *fp = fopen(path, "rb");
+			// Call setup.sh
 
-			// if (fp == NULL)
-			// {
-			// 	printf("Couldn't add a new key to the directory\n");
-			// 	return NULL;
-			// }
+			// Write the public and priavte key to the path in the client directory
 
-			// RSA *rsa_public = RSA_new();
-			// RSA *rsa_private = RSA_new();
+			// create_account_slot(*username, password, signature);
 
+			kopieerString(verkrijgString(&woord_1), state->username, woord_1.pointer);
+			kopieerString(verkrijgString(&woord_2), state->password, woord_2.pointer);
+			state->usernameSIZE = woord_1.pointer;
+			state->passwordSIZE = woord_2.pointer;
 
-			// rsa_public = PEM_read_RSA_PUBKEY(path, &rsa_public, NULL, NULL);
-			// rsa_private = PEM_read_RSAPrivateKey(path, &rsa_private, NULL, NULL);
-
-			// // Write the public and priavte key to the path in the client directory
-			// write(rsa_public, path, sizeof(rsa_public));
-			// write(rsa_private, path, sizeof(rsa_private));
-
-			// fclose(path);
-
-			// // convert woord_1 and woord_2 to const char *
-			// create_account_slot(*username, verkrijgString(&woord_2), signature);
-
-			kopieerString(verkrijgString(&woord_1), state->gebruikersnaam, woord_1.bladwijzer);
-			kopieerString(verkrijgString(&woord_2), state->wachtwoord, woord_2.bladwijzer);
-			state->gebruikersnaamGROOTTE = woord_1.bladwijzer;
-			state->wachtwoordGROOTTE = woord_2.bladwijzer;
-
-			send(state->api.fd, "[server] Jij hebt jou ingeschreven!", READ_SIZE, 0);
+			send(state->api.fd, "[server] You are now registered. Please /login [username] [password] to continue.", READ_SIZE, 0);
 			return 0;
 		}
 		else
 		{
-			send(state->api.fd, "[server] Gebruik: /inschrijven [gebruikersnaam] [wachtwoord]\nvoorbeeld: /inschrijven willem test123", READ_SIZE, 0);
+			send(state->api.fd, "[server] /register [username] [password]\n", READ_SIZE, 0);
 			return 0;
 		}
 	}
 
 	if (state->logintoestand == -1)
 	{
-		send(state->api.fd, "[server] Jij bent nog niet aangemeld. Meld jou aan met: /aanmelden [naam] [wachtwoord]\n[server] Als jij nog niet bent ingeschreven, doe dat dan met: /inschrijven [naam] [wachtwoord]\n[server] Doe daarna /aanmelden [naam] [wachtwoord]", READ_SIZE, 0);
+		send(state->api.fd, "[server] You are not logged in yet. Log in with: /login [username] [password]\n[server] If you would like to register, please type the follow: /register [username] [password] and then login :)", READ_SIZE, 0);
 		return 0;
 	}
 
 	char *datumEnTijd = huidigeDatumEnTijd();
 	for (int i = 0; i < 18; i++)
 	{
-		druk(&bericht, datumEnTijd[i]);
+		druk(&message, datumEnTijd[i]);
 	}
-	druk(&bericht, ' ');
-	for (int i = 0; i < state->gebruikersnaamGROOTTE; i++)
+	druk(&message, ' ');
+	for (int i = 0; i < state->usernameSIZE; i++)
 	{
-		druk(&bericht, state->gebruikersnaam[i]);
+		druk(&message, state->username[i]);
 	}
-	druk(&bericht, ' ');
+	druk(&message, ' ');
 	for (int i = 0;; i++)
 	{
-		druk(&bericht, invoer[i]);
+		druk(&message, invoer[i]);
 		if (invoer[i] == '\0')
 		{
 			break;
 		}
 	}
 
-	fwrite(verkrijgString(&bericht), 1, READ_SIZE, fp);
-	//const char *recipient = "SERVER";
-	//create_message(state->gebruikersnaam, recipient, verkrijgString(&bericht));
-	
+	//fwrite(verkrijgString(&message), 1, READ_SIZE, fp);
+	// const char *recipient = "SERVER";
+	// create_message(state->username, recipient, verkrijgString(&message));
+
 	// Send the message with ssl
-	//SSL_write(ssl, verkrijgString(&bericht), strlen(verkrijgString(&bericht))); /* encrypt & send message */
+	// SSL_write(ssl, verkrijgString(&message), strlen(verkrijgString(&message))); /* encrypt & send message */
 
-
-	fclose(fp);
+	//fclose(fp);
 	notify_workers(state);
 
 	verwijderString(&woord_0);	 // Verstel de begingrootte naar twintig.
 	verwijderString(&woord_1);	 // Verstel de begingrootte naar twintig.
 	verwijderString(&woord_2);	 // Verstel de begingrootte naar twintig.
-	verwijderString(&bericht);	 // Verstel de begingrootte naar twintig.
+	verwijderString(&message);	 // Verstel de begingrootte naar twintig.
 	verwijderString(&tijdelijk); // Verstel de begingrootte naar twintig.
 	/* TODO handle request and reply to client */
 	return 0;
@@ -456,7 +491,6 @@ static int handle_client_request(struct worker_state *state)
 {
 	struct api_msg msg;
 	int r, success = 1;
-	log("WORKER: static int handle_client_request(struct worker_state *state)");
 	assert(state);
 
 	/* wait for incoming request, set eof if there are no more requests */
@@ -487,11 +521,14 @@ static int handle_s2w_read(struct worker_state *state)
 {
 	char buf[BUFFERGROOTTE];
 	ssize_t r;
-	log("WORKER: static int handle_s2w_read(struct worker_state *state)");
-	/* notification from the server that the workers must notify their clients
+
+	/* 
+	 * Nnotification from the server that the workers must notify their clients
 	 * about new messages; these notifications are idempotent so the number
 	 * does not actually matter, nor does the data sent over the pipe
 	 */
+
+
 	errno = 0;
 	r = read(state->server_fd, buf, sizeof(buf));
 	if (r < 0)
@@ -524,7 +561,6 @@ static int handle_s2w_read(struct worker_state *state)
  */
 static int handle_incoming(struct worker_state *state)
 {
-	log("WORKER: static int handle_incoming(struct worker_state *state)");
 	int fdmax, r, success = 1;
 	fd_set readfds;
 
@@ -539,6 +575,7 @@ static int handle_incoming(struct worker_state *state)
 	{
 		FD_SET(state->server_fd, &readfds);
 	}
+
 	fdmax = max(state->api.fd, state->server_fd);
 
 	/* wait for at least one to become ready */
@@ -574,37 +611,6 @@ static int handle_incoming(struct worker_state *state)
 	return success ? 0 : -1;
 }
 
-/* Method to create a database */
-int create_database()
-{
-	sqlite3 *db;
-	int ressy = 0;
-
-	// Create the data base
-	ressy = sqlite3_open(DATABASE, &db);
-
-	sqlite3_close(db);
-
-	return ressy;
-}
-
-/*
- * is called by sqlite3_exec() to print db tables or elements.
- * use sqlite3_get_table() as an alternative if you wish to retrieve
- * data, as opposed to just printing it.
- */
-// static int callback(int argc, char **argv, char **col)
-// {
-// 	int i;
-// 	return 0;
-// }
-
-// On registration, put in everything right away (name, password, status, certificates)
-// Have an sql file, with a bunch of creates that set up the properties of the table
-// Accounts table, message log table, sessions table (keep track of time)
-// create table if not exists, primary key, etc, look for documentation & list of fields (message table (sender, recipient, other important things))
-// name type name type (text is text, signature usignt)
-
 /**
  * @brief Initialize struct worker_state before starting processing requests.
  * @param state        worker state
@@ -615,26 +621,22 @@ int create_database()
  */
 static int worker_state_init(struct worker_state *state, int connfd, int server_fd)
 {
-	log("WORKER: static int worker_state_init(struct worker_state *state, int connfd, int server_fd)");
 	/* initialize */
 	memset(state, 0, sizeof(*state));
 	state->server_fd = server_fd;
 
 	state->logintoestand = -1;
-	state->gebruikersnaam = (char *)malloc(BUFFERGROOTTE * sizeof(char));
-	state->wachtwoord = (char *)malloc(BUFFERGROOTTE * sizeof(char));
-	state->gebruikersnaamGROOTTE = 0;
-	state->wachtwoordGROOTTE = 0;
+	state->username = (char *)malloc(BUFFERGROOTTE * sizeof(char));
+	state->password = (char *)malloc(BUFFERGROOTTE * sizeof(char));
+	state->usernameSIZE = 0;
+	state->passwordSIZE = 0;
 
-	// printf("Login toestand vlak na initialisatie: %i\n", state->logintoestand);
 
 	/* set up API state */
 	api_state_init(&state->api, connfd);
 
 	/* TODO any additional worker state initialization */
-	// Add to the database!
-	create_database();
-	create_account_slot(state->gebruikersnaam, state->wachtwoord, state->gebruikersnaamGROOTTE);
+	
 
 	return 0;
 }
@@ -646,9 +648,6 @@ static int worker_state_init(struct worker_state *state, int connfd, int server_
  */
 static void worker_state_free(struct worker_state *state)
 {
-	log("WORKER: static void worker_state_free(struct worker_state *state)");
-	/* TODO any additional worker state cleanup */
-
 	/* clean up API state */
 	api_state_free(&state->api);
 
@@ -671,25 +670,23 @@ __attribute__((noreturn)) void worker_start(int connfd, int server_fd)
 	/* Hier alles gelijkschakelen op nul (inloggegevens) */
 	// Login gebruikerslijst[DATABANKGROOTTE];
 
-	/*	char *gebruikersnaam;
-	char *wachtwoord;
+	/*	char *username;
+	char *password;
 	int bestandsbeschrijver;
-	int gebruikersnaamGROOTTE;
-	int wachtwoordGROOTTE;*/
+	int usernameSIZE;
+	int passwordSIZE;*/
 
-	for (int i = 0; i < DATABANKGROOTTE; i++)
-	{
-		gl[i].gebruikersnaam = NULL;
-		gl[i].wachtwoord = NULL;
-		gl[i].bestandsbeschrijver = -1;
+	// for (int i = 0; i < DATABANKGROOTTE; i++)
+	// {
+	// 	gl[i].username = NULL;
+	// 	//gl[i].password = NULL;
+	// 	gl[i].bestandsbeschrijver = -1;
 
-		gl[i].gebruikersnaamGROOTTE = 0;
-		gl[i].wachtwoordGROOTTE = 0;
-	}
+	// 	gl[i].usernameSIZE = 0;
+	// 	gl[i].passwordSIZE = 0;
+	// }
 
-	log("WORKER: void worker_start(int connfd, int server_fd)");
 	struct worker_state state;
-
 	int success = 1;
 
 	/* initialize worker state */

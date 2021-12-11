@@ -1,21 +1,15 @@
 #!/bin/bash
-# fields.sh
+# setup.sh
 # This script will generate the serverkeys, clientkeys, and/or ttpkeys directories
 
 set -e # shell will exit if a command fails (exit non-zero)
 
-#! bin/bash
-#! Katherine Lasonde
-#! Test the crawler module
-
 # Directories
-
 mkdir serverkeys
 mkdir clientkeys
 mkdir ttpkeys
 
-# Open SSL commands to generate cryptographic keys and certificates 
-
+# Create variables
 CERT="cert.crt"
 CSR="users.csr"
 CRT="users.crt"
@@ -24,8 +18,35 @@ DER="users.der"
 PEM="users.pem"
 PFX="users.pfx"
 
-# Generate server key 
+# Create client keys
+if [ "$1" = "client" ]; 
+	if ["$2" = "public" ]; 
+		# Get public key 
+		dir = ../clientkey/public/$3
+		cd dir
+		# Create public key for user and share
+		openssl genrsa -out "public_key.pem" >/dev/null 2>&1
+ 		openssl rsa -pubout  "$3_public_key.pem" >/dev/null 2>&1
+  	exit
+	fi
+	if [ "$2" = "private" ]; 
+		// Get private key 
+		dir = ../clientkey/private/$3
+		cd dir
+		// Create key for user
+		openssl genrsa -out "priv_key.pem" >/dev/null 2>&1
+ 		openssl rsa -in "$3_priv_key.pem"  >/dev/null 2>&1
+  	exit
+	fi
+fi
+if [ "$1" = "server" ]; 
+	dir = ../serverkey/
+	cd dir
 
-### Testing memory leaks ###
-valgrind --leak-check=full --show-leak-kinds=all ./crawler $seedURL0 seedURL0test0/ 1
+	openssl genrsa -out "server_key.pem"  >/dev/null 2>&1
+
+	# TO DO: create certificate
+
+fi
+
 
