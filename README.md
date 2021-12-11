@@ -114,18 +114,12 @@ Client:
 - The client is able to register a new account through a username and password. User names have a minium of three characters and passwords a minimum of six characters, to enforce users to opt for a password that is hard to get by a brute force attack. There is no set maximum for either the password of username. The only limitation is that both the username and password must fit in one message (_whose maximum is 256 characters_). It is possible to have a 200 character username and a 30 character password.
 - The client can only login to an account if he/she uses the associated password.
 + The client can exit by logging out from the server. This also terminates the client program.
-	A logout command is not yet implemented. You log out by closing the chat client.
 + When a user joins the server, all public messages previously are displayed as well as private messages sent for the recipient
-	This one is not yet implemented, but we plan to.
 + The client can send public messages to all users and private messages to a specified users
-	As of now, only the public messages are supported.
 - Messages are displayed to the client with a timestamp and author
-+ Duplicate usernames are not allowed on the server
-	Our server does not check for this, yet.
-+ The maximum length for messages is 500 characters on the server
-	256 characters, as of now, but we plan to expand this to 512, since 256 characters is annoying when sending larger messages.
+- Duplicate usernames are not allowed on the server
+- The maximum length for messages is 256 characters on the server
 + Can provide a list of logged in users at a client's request
-	This one is not yet implemented.
 - Messages are displayed to the intended client(s) immediately
 
 Server:

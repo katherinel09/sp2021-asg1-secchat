@@ -34,19 +34,27 @@ if [ "$1" = "client" ];
 		dir = ../clientkey/private/$3
 		cd dir
 		// Create key for user
+
+		# Generate private key for the user
 		openssl genrsa -out "priv_key.pem" >/dev/null 2>&1
  		openssl rsa -in "$3_priv_key.pem"  >/dev/null 2>&1
   	exit
 	fi
 fi
+# Generate server keys
 if [ "$1" = "server" ]; 
 	dir = ../serverkey/
 	cd dir
 
 	openssl genrsa -out "server_key.pem"  >/dev/null 2>&1
+fi
 
-	# TO DO: create certificate
-
+# Create signatures and verify
+if [ "$1" = "signature" ]; 
+	./rsa-sign keypriv.pem "$2" | ./rsa-verify keypub.pem "$2"	
+fi
+if [ "$1" = "verify" ]; 
+	./rsa-sign keypriv.pem "$2" | ./rsa-verify keypub.pem "$2"
 fi
 
 

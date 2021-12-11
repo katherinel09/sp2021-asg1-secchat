@@ -46,11 +46,10 @@ int create_user_table()
 	ressy = sqlite3_open(DATABASE, &db);
 
 	const char sql1[5000] = "CREATE TABLE PERSON("
-
 							"USERNAME 		TEXT	NOT NULL, "
-							"PASSWORD			TEXT    NOT NULL, "
-							"STATUS           TEXT    NOT NULL, "
-							"SIGNATURE        INT 	NOT NULL, "
+							"PASSWORD		TEXT    NOT NULL, "
+							"STATUS         TEXT    NOT NULL, "
+							"SIGNATURE      INT 	NOT NULL, "
 							"PRIMARY KEY (USERNAME) );";
 
 	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
@@ -220,35 +219,6 @@ void kopieerString(char *origineel, char *kopie, int grootte)
 	{
 		kopie[i] = origineel[i];
 	}
-}
-
-// Method to create a new user message in the log
-int create_message(sqlite3 *db, const char *username, const char *recipient, const char *message)
-{
-
-	// Otherwise, add them to the database
-	char const *initial2 = "INSERT INTO MESSAGES (RECIPIENT, SENDER, MESSAGE) VALUES('";
-	char const *rest = "', '";
-
-	char const *formatting2 = ");";
-
-	char *full_command;
-	full_command = malloc(500 + strlen(initial2) + strlen(username) + strlen(recipient) + strlen(message) + 2 * strlen(rest) + 1 + 4);
-	strcat(full_command, initial2);
-	strcat(full_command, recipient);
-	strcat(full_command, rest);
-	strcat(full_command, username);
-	strcat(full_command, rest);
-	strcat(full_command, message);
-	strcat(full_command, rest);
-	strcat(full_command, formatting2);
-
-	int ressy;
-	ressy = sqlite3_exec(db, full_command, NULL, 0, NULL);
-	sqlite3_close(db);
-	free(full_command);
-
-	return ressy;
 }
 
 struct worker_state
@@ -667,25 +637,6 @@ static void worker_state_free(struct worker_state *state)
  */
 __attribute__((noreturn)) void worker_start(int connfd, int server_fd)
 {
-	/* Hier alles gelijkschakelen op nul (inloggegevens) */
-	// Login gebruikerslijst[DATABANKGROOTTE];
-
-	/*	char *username;
-	char *password;
-	int bestandsbeschrijver;
-	int usernameSIZE;
-	int passwordSIZE;*/
-
-	// for (int i = 0; i < DATABANKGROOTTE; i++)
-	// {
-	// 	gl[i].username = NULL;
-	// 	//gl[i].password = NULL;
-	// 	gl[i].bestandsbeschrijver = -1;
-
-	// 	gl[i].usernameSIZE = 0;
-	// 	gl[i].passwordSIZE = 0;
-	// }
-
 	struct worker_state state;
 	int success = 1;
 

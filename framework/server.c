@@ -23,10 +23,6 @@
 #define TEKEN_LIMIET 256
 #define DATABASE "users.db"
 
-//int ontbeest = TRUE;
-int ontbeest = FALSE;
-#define log(x) if(ontbeest) { printf(x); printf("\n"); }
-
 struct server_child_state
 {
 	int worker_fd;  /* server <-> worker bidirectional notification channel */
@@ -49,10 +45,10 @@ int create_table()
 
 	const char sql1[5000] = "CREATE TABLE PERSON("
 
-							"USERNAME 		TEXT	NOT NULL, "
-							"PASSWORD			TEXT    NOT NULL, "
-							"STATUS           TEXT    NOT NULL, "
-							"SIGNATURE        INT 	NOT NULL, "
+							"USERNAME 	TEXT	NOT NULL, "
+							"PASSWORD	TEXT    NOT NULL, "
+							"STATUS     TEXT    NOT NULL, "
+							"SIGNATURE   INT 	NOT NULL, "
 							"PRIMARY KEY (USERNAME) );";
 
 	ressy = sqlite3_exec(db, sql1, NULL, 0, NULL);
@@ -108,9 +104,10 @@ static int create_server_socket(uint16_t port)
 		goto error;
 	}
 
-	create_table();
+	
 
 	// Method to create the documentation & list of fields (message table (sender, recipient, other important things))
+	create_table();
 	create_table_log();
 
 	return fd;
@@ -122,7 +119,7 @@ static int create_server_socket(uint16_t port)
 
 static void child_add(struct server_state *state, int worker_fd)
 {
-	log("SERVER: static void child_add(struct server_state *state, int worker_fd)");
+	//log("SERVER: static void child_add(struct server_state *state, int worker_fd)");
 	assert(state);
 	assert(worker_fd >= 0);
 	
@@ -144,7 +141,7 @@ static void child_add(struct server_state *state, int worker_fd)
 
 static void children_check(struct server_state *state)
 {
-	log("SERVER: static void children_check(struct server_state *state)");
+	//log("SERVER: static void children_check(struct server_state *state)");
 	pid_t pid;
 	int status;
 	assert(state);
@@ -175,7 +172,7 @@ static void children_check(struct server_state *state)
 
 static void close_server_handles(struct server_state *state)
 {
-	log("SERVER: static void close_server_handles(struct server_state *state)");
+	//log("SERVER: static void close_server_handles(struct server_state *state)");
 	assert(state);
 	
 	/* close all open file descriptors */
@@ -189,7 +186,7 @@ static void close_server_handles(struct server_state *state)
 
 static int handle_connection(struct server_state *state)
 {
-	log("SERVER: static int handle_connection(struct server_state *state)");
+	//log("SERVER: static int handle_connection(struct server_state *state)");
 	struct sockaddr addr;
 	socklen_t addrlen = sizeof(addr);
 	int connfd;
@@ -251,7 +248,6 @@ static int handle_connection(struct server_state *state)
 
 static int handle_s2w_closed(struct server_state *state, int index)
 {
-	log("SERVER: static int handle_s2w_closed(struct server_state *state, int index)");
 	assert(state->children[index].worker_fd >= 0);
 	
 	/* if the other end of worker_fd was closed, the worker exited */
@@ -263,7 +259,6 @@ static int handle_s2w_closed(struct server_state *state, int index)
 
 static int handle_w2s_read(struct server_state *state, int index)
 {
-	log("SERVER: static int handle_w2s_read(struct server_state *state, int index)");
 	char buf[TEKEN_LIMIET];
 	int i;
 	ssize_t r;
@@ -290,13 +285,12 @@ static int handle_w2s_read(struct server_state *state, int index)
 
 static int handle_s2w_write(struct server_state *state, int index)
 {
-	log("SERVER: static int handle_s2w_write(struct server_state *state, int index)");
 	char buf = 0;
 	ssize_t r;
 	
 	assert(state->children[index].worker_fd >= 0);
 	
-	/* ready to send a pending notification; we just want to notify the worker;		the data sent does not actually matter */
+	/* ready to send a pending notification; we just want to notify the worker;	the data sent does not actually matter */
 	if (!state->children[index].pending) { return 0; }
 	
 	r = write(state->children[index].worker_fd, &buf, sizeof(buf));
@@ -311,13 +305,11 @@ static int handle_s2w_write(struct server_state *state, int index)
 
 static void handle_sigchld(int signum)
 {
-	log("SERVER: static void handle_sigchld(int signum)");
 	/* do nothing */
 }
 
 static void register_signals(void)
 {
-	log("SERVER: static void register_signals(void)");
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
 	
@@ -353,7 +345,6 @@ static int server_state_init(struct server_state *state)
 
 static void server_state_free(struct server_state *state)
 {
-	log("SERVER: static void server_state_free(struct server_state *state)");
 	/* TODO any additional server state cleanup */
 	for (int i = 0; i < MAX_CHILDREN; i++)
 		{ close(state->children[i].worker_fd); }
@@ -361,7 +352,6 @@ static void server_state_free(struct server_state *state)
 
 static int handle_incoming(struct server_state *state)
 {
-	log("SERVER: static int handle_incoming(struct server_state *state)");
 	int fdmax, i, worker_fd, r, success = 1;
 	fd_set readfds, writefds;
 
@@ -449,4 +439,43 @@ int main(int argc, char **argv)
 	close(state.sockfd);
 	
 	return 0;
+}
+
+/* This example verifies an RSA signature for the message specified in the
+ * second argument, using a RSA private key loaded from the file specified
+ * by the first argument. The signature is provided through to stdin.
+ *
+ * Example to sign "Hello world" with key in file keypriv.pem,
+ * and then verify signature with key in file keypub.pem:
+ * ./rsa-sign keypriv.pem 'Hello world' | ./rsa-verify keypub.pem 'Hello world'
+ *
+ * See Makefile and/or slides for how to generate the keys.
+ */
+
+int main(int argc, char **argv) {
+  int r; unsigned char *sig; unsigned siglen;
+  EVP_MD_CTX *ctx = EVP_MD_CTX_create();
+  EVP_PKEY *evpKey = EVP_PKEY_new();
+
+  /* read key from argv[1] */
+  FILE *keyfile = fopen(argv[1], "r");
+  RSA *key = PEM_read_RSA_PUBKEY(keyfile, NULL, NULL, NULL);
+  fclose(keyfile);
+
+  /* make EVP key using RSA key (RSA key will be automatically freed) */
+  EVP_PKEY_assign_RSA(evpKey, key);
+
+  /* read signature from stdin into sig */
+  sig = malloc(EVP_PKEY_size(evpKey));
+  siglen = read(0, sig, EVP_PKEY_size(evpKey));
+
+  /* verify signature */
+  EVP_VerifyInit(ctx, EVP_sha1());
+  EVP_VerifyUpdate(ctx, argv[2], strlen(argv[2]));
+  r = EVP_VerifyFinal(ctx, sig, siglen, evpKey);
+  printf("signature is %s\n", (r == 1) ? "good" : "bad");
+
+  EVP_PKEY_free(evpKey);
+  EVP_MD_CTX_free(ctx);
+  return 0;
 }
